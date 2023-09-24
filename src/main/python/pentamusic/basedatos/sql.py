@@ -23,7 +23,7 @@ class SQL:
         self.c.execute(query, values)
 
     def consultar(self, user: str, password: str) -> bool:
-        query = "SELECT * FROM prueba WHERE uno = ? AND dos = ?"
+        query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"
         values = (user, password)
         self.c.execute(query, values)
 
@@ -32,8 +32,10 @@ class SQL:
 
         # Si result es None, significa que no se encontró en la tabla
         if result is None:
+            print("No encontrado")
             return False
         else:
+            print("Encontrado")
             return True
 
     def cerrar(self):

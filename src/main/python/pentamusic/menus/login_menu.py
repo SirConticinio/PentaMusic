@@ -1,6 +1,7 @@
 # Subclass QMainWindow to customize your application's main window
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget
+from pentamusic.basedatos.sql import SQL
 
 
 class LoginWindow(QMainWindow):
@@ -35,6 +36,8 @@ class LoginWindow(QMainWindow):
         # Set the central widget of the Window.
         self.setCentralWidget(container)
 
+        self.datos = SQL()
+
     def confirm(self):
         user = self.usuarioBox.text()
         password = self.contraseñaBox.text()
@@ -43,7 +46,10 @@ class LoginWindow(QMainWindow):
         if self.isLogin:
             print("Logueando!")
             # comprobamos si contraseña coincide con la de base de datos
+            self.datos.consultar(user, password)
+
 
         else:
             print("Registrando!")
             # metemos el usuario en la base de datos si no existe
+            self.datos.insertar(user, password)
