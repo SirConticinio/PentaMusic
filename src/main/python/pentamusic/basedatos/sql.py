@@ -11,20 +11,30 @@ class SQL:
 
         try:
             # Procedemos a ejecutar un comando en SQL para crear la tabla si no existe
-            self.c.execute("""CREATE TABLE IF NOT EXISTS prueba (uno TEXT, dos INTEGER, tres REAL)""")
+            self.c.execute("""CREATE TABLE IF NOT EXISTS usuarios (USER TEXT, password TEXT)""")
         except sqlite3.Error as e:
             pass  # No hace nada, si ya existe la tabla
 
-    def insertar(self):
+    def insertar(self, user: str, password: str) -> None:
         # Ahora insertamos elementos
-        self.c.execute("INSERT INTO prueba VALUES ('hola', 2, 1.9)")
+        query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
+        # Tupla con los valores a insertar
+        values = (user, password)
+        self.c.execute(query, values)
 
-    def consultar(self):
-        # Vemos la tabla
-        self.c.execute("SELECT * FROM prueba")
-        rows = self.c.fetchall()
-        for row in rows:
-            print(row)
+    def consultar(self, user: str, password: str) -> bool:
+        query = "SELECT * FROM prueba WHERE uno = ? AND dos = ?"
+        values = (user, password)
+        self.c.execute(query, values)
+
+        # Recuperamos los resultados de la consulta
+        result = self.c.fetchone()
+
+        # Si result es None, significa que no se encontró en la tabla
+        if result is None:
+            return False
+        else:
+            return True
 
     def cerrar(self):
         # Guardamos los cambios hechos
