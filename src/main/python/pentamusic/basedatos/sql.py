@@ -23,35 +23,37 @@ class SQL:
                                 FOREIGN KEY (user) REFERENCES usuarios(user)
             )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS partitura (
-                                id numeric PRIMARY KEY,
+                                id NUMERIC PRIMARY KEY,
                                 nombre_creador TEXT,
                                 nombre_partitura TEXT NOT NULL,
-                                publica,
-                                CONSTRAINT CK_Partitura_publico CHECK (publico in (0 or 1))
-                                            )""")
+                                publica NUMERIC,
+                                CONSTRAINT CK_Partitura_publico CHECK (publica IN (0, 1))
+            )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS user_partituras (
                                                 user TEXT,
                                                 partitura NUMERIC,
                                                 comentarios TEXT,
                                                 compas TEXT,
                                                 PRIMARY KEY (user, partitura),
-                                                FOREIGN KEY (user) REFERENCES usuarios(user)
+                                                FOREIGN KEY (user) REFERENCES usuarios(user),
                                                 FOREIGN KEY (partitura) REFERENCES partitura(id)
                             )""")
-            '''
-            # Disparador que permite añadir partituras si son tuyas o son publicas a tu usuario
-            self.c.execute("""CREATE OR REPLACE TRIGGER insert_partitura
-                              BEFORE OF INSERT ON user_partitura
-                              FOR EACH ROW
-                              DECLARE
-                              v_num_conc NUMBER;
-                            BEGIN
-                              IF NEW.user != nombre_creador or publico = 0 THEN
-                                RAISE_APPLICATION_ERROR(-20004, 'No se permite coger una partitura privada');
-                              END IF;
-                            END;
-                            """)
-            '''
+            self.c.execute("""CREATE TRIGGER IF NOT EXISTS insert_user_partitura
+                                AFTER INSERT ON partitura
+                                FOR EACH ROW
+                                BEGIN
+                                    insert into user_partitura values (NEW.nombre_creador, NEW.id);
+                                END;""")
+
+            self.c.execute("""CREATE TRIGGER IF NOT EXISTS insertar_user_partitura 
+                                BEFORE INSERT ON user_partituras
+                                FOR EACH ROW
+                                BEGIN
+                                    -- Consulta para verificar si el usuario puede realizar la inserción
+                                    SELECT RAISE(ABORT, 'No tienes permiso para insertar en user_partitura')
+                                    WHERE NEW.user != NEW.nombre_creador AND NEW.publico != 1;
+                                END;""")
+
             self.c.execute("""CREATE VIEW IF NOT EXISTS hola AS SELECT * FROM partitura WHERE publica = 1""")
 
 
