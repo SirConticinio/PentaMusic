@@ -12,7 +12,7 @@ class MainWindow(Menu):
         super().__init__()
 
         self.session = Session()
-        welcome = QLabel("¡Bienvenido, test!")
+        welcome = QLabel("¡Bienvenido, " + self.session.user + "!")
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         datos = QLabel("Accede a tus datos:")

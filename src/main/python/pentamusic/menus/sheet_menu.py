@@ -12,39 +12,32 @@ class SheetWindow(Menu):
 
         self.session = Session()
         welcome = QLabel("Aquí tienes tu lista de partituras:")
-        spacer = QSpacerItem(0, 30)
 
         group = QWidget()
-        form = QFormLayout()
-        self.set_partituras(form)
-        group.setLayout(form)
+        groupLayout = QVBoxLayout()
+        self.set_partituras(groupLayout)
+        group.setLayout(groupLayout)
+
         scroll = QScrollArea()
         scroll.setWidget(group)
         scroll.setWidgetResizable(True)
         scroll.setFixedHeight(200)
-        layout = QVBoxLayout()
-        layout.addWidget(scroll)
-        self.container.setLayout(layout)
 
         importar = QPushButton("Importar más partituras")
         importar.clicked.connect(lambda: self.clicked_importar())
 
         layout = QVBoxLayout()
         layout.addWidget(welcome)
-        layout.addWidget(spacer)
+        layout.addWidget(scroll)
         layout.addWidget(importar)
-
         self.container.setLayout(layout)
 
-    def set_partituras(self, form):
+    def set_partituras(self, group: QVBoxLayout):
         # todo
-        form.addRow("test1")
-        form.addRow("test2")
-        form.addRow("test3")
-        form.addRow("test4")
-        form.addRow("test5")
-        form.addRow("test6")
-        form.addRow("test7")
+        for i in range(10):
+            nombre = "test nº" + str(i)
+            label = QLabel(nombre)
+            group.addWidget(label)
 
     def clicked_importar(self):
         # todo
