@@ -11,7 +11,7 @@ class SQL:
 
         try:
             # Procedemos a ejecutar un comando en SQL para crear la tabla si no existe
-            self.c.execute("""CREATE TABLE IF NOT EXISTS usuarios (USER TEXT, password TEXT)""")
+            self.c.execute("""CREATE TABLE usuarios (USER TEXT, password TEXT)""")
         except sqlite3.Error as e:
             pass  # No hace nada, si ya existe la tabla
 
@@ -21,6 +21,7 @@ class SQL:
         # Tupla con los valores a insertar
         values = (user, password)
         self.c.execute(query, values)
+        self.con.commit()
 
     def consultar(self, user: str, password: str) -> bool:
         query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"

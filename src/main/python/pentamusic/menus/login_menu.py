@@ -50,6 +50,6 @@ class LoginWindow(QMainWindow):
 
 
         else:
+            self.datos.insertar(user, password)
             print("Registrando!")
             # metemos el usuario en la base de datos si no existe
-            self.datos.insertar(user, password)
