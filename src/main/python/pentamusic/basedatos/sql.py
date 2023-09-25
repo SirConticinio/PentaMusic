@@ -1,47 +1,63 @@
 import sqlite3
 
-
 class SQL:
-    def __init__(self):
-        # Creamos base de datos
-        self.con = sqlite3.connect('penta.db')
+    class __SQL:
+        def __init__(self):
+            # Creamos base de datos
+            self.con = sqlite3.connect('penta.db')
 
-        # Esto lo usaremos para poder ejecutar comandos SQL
-        self.c = self.con.cursor()
+            # Esto lo usaremos para poder ejecutar comandos SQL
+            self.c = self.con.cursor()
 
-        try:
-            # Procedemos a ejecutar un comando en SQL para crear la tabla si no existe
-            self.c.execute("""CREATE TABLE usuarios (USER TEXT, password TEXT)""")
-        except sqlite3.Error as e:
-            pass  # No hace nada, si ya existe la tabla
+            try:
+                # Procedemos a ejecutar un comando en SQL para crear la tabla si no existe
+                self.c.execute("""CREATE TABLE usuarios (USER TEXT, password TEXT)""")
+            except sqlite3.Error as e:
+                pass  # No hace nada, si ya existe la tabla
 
-    def insertar(self, user: str, password: str) -> None:
-        # Ahora insertamos elementos
-        query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
-        # Tupla con los valores a insertar
-        values = (user, password)
-        self.c.execute(query, values)
-        self.con.commit()
+        def insertar(self, user: str, password: str) -> None:
+            # Ahora insertamos elementos
+            query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
+            # Tupla con los valores a insertar
+            values = (user, password)
+            self.c.execute(query, values)
+            self.con.commit()
 
-    def consultar(self, user: str, password: str) -> bool:
-        query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"
-        values = (user, password)
-        self.c.execute(query, values)
+        def consultar(self, user: str, password: str) -> bool:
+            query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"
+            values = (user, password)
+            self.c.execute(query, values)
 
-        # Recuperamos los resultados de la consulta
-        result = self.c.fetchone()
+            # Recuperamos los resultados de la consulta
+            result = self.c.fetchone()
 
-        # Si result es None, significa que no se encontró en la tabla
-        if result is None:
-            print("No encontrado")
-            return False
-        else:
-            print("Encontrado")
-            return True
+            # Si result es None, significa que no se encontró en la tabla
+            if result is None:
+                print("No encontrado")
+                return False
+            else:
+                print("Encontrado")
+                return True
 
-    def cerrar(self):
-        # Guardamos los cambios hechos
-        self.con.commit()
+        def cerrar(self):
+            # Guardamos los cambios hechos
+            self.con.commit()
 
-        # Cerramos la conexión a la base de datos. Buena práctica
-        self.con.close()
+            # Cerramos la conexión a la base de datos. Buena práctica
+            self.con.close()
+
+
+    # Usamos un singleton
+    instance = None
+
+    def __new__(cls):
+        if not SQL.instance:
+            SQL.instance = SQL.__SQL()
+        return SQL.instance
+
+    def __getattr__(self, item):
+        return getattr(self.instance,item)
+
+    def __setattr__(self, key, value):
+        return setattr(self.instance,key,value)
+

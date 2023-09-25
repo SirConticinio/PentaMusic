@@ -35,7 +35,6 @@ class LoginWindow(QMainWindow):
 
         # Set the central widget of the Window.
         self.setCentralWidget(container)
-
         self.datos = SQL()
 
     def confirm(self):
