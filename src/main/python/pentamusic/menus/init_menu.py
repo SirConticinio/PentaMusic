@@ -2,34 +2,26 @@
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget
 from .login_menu import LoginWindow
+from .main_menu import MainWindow
+from .menu import Menu
 
-class MainWindow(QMainWindow):
+class InitWindow(Menu):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("PentaMusic")
-
         login = QPushButton("Iniciar sesión.")
-        login.clicked.connect(self.clicked_login)
+        login.clicked.connect(lambda: self.clicked_login())
         register = QPushButton("Registrar nuevo usuario.")
-        register.clicked.connect(self.clicked_register)
+        register.clicked.connect(lambda: self.clicked_register())
 
         layout = QVBoxLayout()
         layout.addWidget(login)
         layout.addWidget(register)
 
-        container = QWidget()
-        container.setLayout(layout)
-
-        # Set the central widget of the Window.
-        self.setCentralWidget(container)
+        self.container.setLayout(layout)
 
     def clicked_login(self):
-        self.loginWindow = LoginWindow(True)
-        self.loginWindow.show()
-        self.close()
+        LoginWindow(True)
 
     def clicked_register(self):
-        self.loginWindow = LoginWindow(False)
-        self.loginWindow.show()
-        self.close()
+        LoginWindow(False)
