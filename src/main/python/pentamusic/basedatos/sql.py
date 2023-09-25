@@ -9,19 +9,62 @@ class SQL:
             # Esto lo usaremos para poder ejecutar comandos SQL
             self.c = self.con.cursor()
 
-            try:
-                # Procedemos a ejecutar un comando en SQL para crear la tabla si no existe
-                self.c.execute("""CREATE TABLE usuarios (USER TEXT, password TEXT)""")
-            except sqlite3.Error as e:
-                pass  # No hace nada, si ya existe la tabla
+            # Creamos nuestra base de datos
+            self.c.execute("""CREATE TABLE IF NOT EXISTS usuarios (
+                                USER TEXT PRIMARY KEY, 
+                                password TEXT NOT NULL 
+            )""")
+            self.c.execute("""CREATE TABLE IF NOT EXISTS conciertos (
+                                id numeric PRIMARY KEY,
+                                user TEXT,
+                                nombre_concierto TEXT NOT NULL,
+                                fecha DATE,
+                                lugar TEXT NOT NULL,
+                                FOREIGN KEY (user) REFERENCES usuarios(user)
+            )""")
+            self.c.execute("""CREATE TABLE IF NOT EXISTS partitura (
+                                id numeric PRIMARY KEY,
+                                nombre_creador TEXT,
+                                nombre_partitura TEXT NOT NULL,
+                                publica,
+                                CONSTRAINT CK_Partitura_publico CHECK (publico in (0 or 1))
+                                            )""")
+            self.c.execute("""CREATE TABLE IF NOT EXISTS user_partituras (
+                                                user TEXT,
+                                                partitura NUMERIC,
+                                                comentarios TEXT,
+                                                compas TEXT,
+                                                PRIMARY KEY (user, partitura),
+                                                FOREIGN KEY (user) REFERENCES usuarios(user)
+                                                FOREIGN KEY (partitura) REFERENCES partitura(id)
+                            )""")
+            '''
+            # Disparador que permite añadir partituras si son tuyas o son publicas a tu usuario
+            self.c.execute("""CREATE OR REPLACE TRIGGER insert_partitura
+                              BEFORE OF INSERT ON user_partitura
+                              FOR EACH ROW
+                              DECLARE
+                              v_num_conc NUMBER;
+                            BEGIN
+                              IF NEW.user != nombre_creador or publico = 0 THEN
+                                RAISE_APPLICATION_ERROR(-20004, 'No se permite coger una partitura privada');
+                              END IF;
+                            END;
+                            """)
+            '''
+            self.c.execute("""CREATE VIEW IF NOT EXISTS hola AS SELECT * FROM partitura WHERE publica = 1""")
+
 
         def insertar(self, user: str, password: str) -> None:
             # Ahora insertamos elementos
-            query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
-            # Tupla con los valores a insertar
-            values = (user, password)
-            self.c.execute(query, values)
-            self.con.commit()
+            if not self.consultar(user, password):
+                query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
+                # Tupla con los valores a insertar
+                values = (user, password)
+                self.c.execute(query, values)
+                self.con.commit()
+            else:
+                print("El usuario ya existe")
 
         def consultar(self, user: str, password: str) -> bool:
             query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"
@@ -60,4 +103,7 @@ class SQL:
 
     def __setattr__(self, key, value):
         return setattr(self.instance,key,value)
+
+if __name__ == "__main__":
+    print("Hola")
 
