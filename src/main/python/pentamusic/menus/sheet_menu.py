@@ -1,6 +1,11 @@
 # Subclass QMainWindow to customize your application's main window
+import os
+import shutil
+import uuid
+
 from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QFormLayout, QScrollArea
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QFormLayout, QScrollArea, \
+    QFileDialog
 from pentamusic.basedatos.sql import SQL
 from .menu import Menu
 from pentamusic.basedatos.session import Session
@@ -23,13 +28,16 @@ class SheetWindow(Menu):
         scroll.setWidgetResizable(True)
         scroll.setFixedHeight(200)
 
-        importar = QPushButton("Importar más partituras")
-        importar.clicked.connect(lambda: self.clicked_importar())
+        pub = QPushButton("Importar partitura pública")
+        pub.clicked.connect(lambda: self.clicked_importar_publica())
+        arch = QPushButton("Importar partitura desde archivo")
+        arch.clicked.connect(lambda: self.clicked_importar_archivo(arch))
 
         layout = QVBoxLayout()
         layout.addWidget(welcome)
         layout.addWidget(scroll)
-        layout.addWidget(importar)
+        layout.addWidget(pub)
+        layout.addWidget(arch)
         self.container.setLayout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
@@ -39,6 +47,25 @@ class SheetWindow(Menu):
             label = QLabel(nombre)
             group.addWidget(label)
 
-    def clicked_importar(self):
+    def clicked_importar_publica(self):
         # todo
         pass
+
+    def clicked_importar_archivo(self, arch):
+        file, _ = QFileDialog.getOpenFileName(arch, "Elige un archivo de partitura", "", "PDF (*.pdf);;PNG (*.png);;All Files (*);;")
+        if file:
+            print(file)
+            self.save_sheet(file)
+
+    def save_sheet(self, filename):
+        home = os.path.expanduser("~/PentaMusic/Sheets")
+        if not os.path.exists(home):
+            os.makedirs(home)
+
+        # aqui lo guardamos con un nombre random, pero en la base de datos se guarda el original
+        newname = str(uuid.uuid4())
+        path = home + "/" + newname
+        shutil.copy2(filename, path)
+
+
+

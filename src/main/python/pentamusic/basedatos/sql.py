@@ -1,10 +1,14 @@
+import os
 import sqlite3
 
 class SQL:
     class __SQL:
         def __init__(self):
             # Creamos base de datos
-            self.con = sqlite3.connect('penta.db')
+            file = os.path.expanduser("~/PentaMusic")
+            if not os.path.exists(file):
+                os.makedirs(file)
+            self.con = sqlite3.connect(file + "/penta.db")
 
             # Esto lo usaremos para poder ejecutar comandos SQL
             self.c = self.con.cursor()
