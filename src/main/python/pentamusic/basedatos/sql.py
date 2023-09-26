@@ -59,7 +59,7 @@ class SQL:
 
         def insertar(self, user: str, password: str) -> None:
             # Ahora insertamos elementos
-            if not self.consultar(user, password):
+            if not self.consultar_reg(user):
                 query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
                 # Tupla con los valores a insertar
                 values = (user, password)
@@ -68,7 +68,22 @@ class SQL:
             else:
                 print("El usuario ya existe")
 
-        def consultar(self, user: str, password: str) -> bool:
+        def consultar_reg(self, user):
+            query = "SELECT * FROM usuarios WHERE user = ?"
+            self.c.execute(query, (user,))
+
+            # Recuperamos los resultados de la consulta
+            result = self.c.fetchone()
+
+            # Si result es None, significa que no se encontró en la tabla
+            if result is None:
+                print("No encontrado")
+                return False
+            else:
+                print("Encontrado")
+                return True
+
+        def consulta_log(self, user: str, password: str) -> bool:
             query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"
             values = (user, password)
             self.c.execute(query, values)
