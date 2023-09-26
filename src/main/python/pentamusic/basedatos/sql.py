@@ -46,7 +46,7 @@ class SQL:
                                                 FOREIGN KEY (user) REFERENCES usuarios(user),
                                                 FOREIGN KEY (partitura) REFERENCES partitura(id)
                             )""")
-            self.c.execute("""CREATE TRIGGER insert_partitura
+            self.c.execute("""CREATE TRIGGER  IF NOT EXISTS insert_partitura
                                             AFTER INSERT ON partitura
                                             FOR EACH ROW
                                             BEGIN
