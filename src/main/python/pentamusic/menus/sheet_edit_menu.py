@@ -10,33 +10,35 @@ from .menu import Menu
 from pentamusic.basedatos.session import Session
 
 
-class SheetWindow(Menu):
-    def __init__(self):
+class SheetEditWindow(Menu):
+    def __init__(self, sheet_id):
         super().__init__()
 
+
+
         self.session = Session()
-        welcome = QLabel("Aquí tienes tu lista de partituras:")
+        welcome = QLabel("Edita los datos de la partitura y haz click en 'confirmar' para terminar:")
 
-        group = QWidget()
-        groupLayout = QVBoxLayout()
-        self.set_partituras(groupLayout)
-        group.setLayout(groupLayout)
-
-        scroll = QScrollArea()
-        scroll.setWidget(group)
-        scroll.setWidgetResizable(True)
-        scroll.setFixedHeight(200)
-
-        pub = QPushButton("Importar partitura pública")
-        pub.clicked.connect(lambda: self.clicked_importar_publica())
-        arch = QPushButton("Importar partitura desde archivo")
-        arch.clicked.connect(lambda: self.clicked_importar_archivo(arch))
+        usuarioLabel = QLabel("Introduce tu nombre de usuario:")
+        self.usuarioBox = QLineEdit()
+        self.usuarioBox.setMaxLength(16)
+        self.usuarioBox.setPlaceholderText("[...]")
+        contraseñaLabel = QLabel("Introduce tu contraseña:")
+        self.contraseñaBox = QLineEdit()
+        self.contraseñaBox.setPlaceholderText("[***]")
+        self.contraseñaBox.setEchoMode(QLineEdit.Password)
+        confirmar = QPushButton("Confirmar")
+        print("Connecting confirm2 to confirmar button")
+        confirmar.clicked.connect(lambda: self.confirm())
 
         layout = QVBoxLayout()
-        layout.addWidget(welcome)
-        layout.addWidget(scroll)
-        layout.addWidget(pub)
-        layout.addWidget(arch)
+        layout.addWidget(modeLabel)
+        layout.addWidget(usuarioLabel)
+        layout.addWidget(self.usuarioBox)
+        layout.addWidget(contraseñaLabel)
+        layout.addWidget(self.contraseñaBox)
+        layout.addWidget(confirmar)
+
         self.container.setLayout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
