@@ -37,7 +37,7 @@ class SQL:
                                 publica NUMERIC,
                                 CONSTRAINT CK_Partitura_publico CHECK (publica IN (0, 1))
             )""")
-            self.c.execute("""CREATE TABLE IF NOT EXISTS user_partituras (
+            self.c.execute("""CREATE TABLE IF NOT EXISTS user_partitura (
                                                 user TEXT,
                                                 partitura NUMERIC,
                                                 comentarios TEXT,
@@ -50,11 +50,11 @@ class SQL:
                                 AFTER INSERT ON partitura
                                 FOR EACH ROW
                                 BEGIN
-                                    insert into user_partitura values (NEW.nombre_creador, NEW.id);
+                                    insert into user_partitura values (NEW.nombre_creador, NEW.id, null, null);
                                 END;""")
 
             self.c.execute("""CREATE TRIGGER IF NOT EXISTS insertar_user_partitura 
-                                BEFORE INSERT ON user_partituras
+                                BEFORE INSERT ON user_partitura
                                 FOR EACH ROW
                                 BEGIN
                                     -- Consulta para verificar si el usuario puede realizar la inserción
