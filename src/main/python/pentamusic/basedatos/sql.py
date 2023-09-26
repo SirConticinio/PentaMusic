@@ -1,6 +1,10 @@
 import os
 import sqlite3
 
+from pentamusic.basedatos.sheet import Sheet
+from sheet import Sheet
+
+
 class SQL:
     class __SQL:
         def __init__(self):
@@ -27,8 +31,10 @@ class SQL:
                                 FOREIGN KEY (user) REFERENCES usuarios(user)
             )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS partitura (
-                                id NUMERIC PRIMARY KEY,
+                                id TEXT PRIMARY KEY,
                                 nombre_creador TEXT,
+                                compositor TEXT,
+                                instrumento TEXT, 
                                 nombre_partitura TEXT NOT NULL,
                                 publica NUMERIC,
                                 CONSTRAINT CK_Partitura_publico CHECK (publica IN (0, 1))
@@ -60,7 +66,26 @@ class SQL:
 
             self.c.execute("""CREATE VIEW IF NOT EXISTS hola AS SELECT * FROM partitura WHERE publica = 1""")
 
+        # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
+        def insertar_partituras(self, id, nombre_partitura, publica, nombre_creador=None, compositor=None,
+                                instrumento=None):
+            query = ("INSERT INTO partitura (id, nombre_creador, compositor, instrumento, nombre_partitura, publica) "
+                     "VALUES (?, ?, ?, ?, ?, ?)")
+            # Tupla con los valores a insertar
+            values = (id, nombre_creador, compositor, instrumento, nombre_partitura, publica)
+            self.c.execute(query, values)
+            self.con.commit()
 
+        def consult_partiture(self, id: str) -> Sheet:
+            query = "SELECT * FROM partitura WHERE id = ?"
+            self.c.execute(query, (id,))
+
+            result = self.c.fetchone()
+
+            if result is not None:
+                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
+
+        # ------------------------------------------------ TABLA USUARIOS ----------------------------------------------
         def insertar(self, user: str, password: str) -> None:
             # Ahora insertamos elementos
             if not self.consultar_reg(user):
@@ -103,13 +128,13 @@ class SQL:
                 print("Encontrado")
                 return True
 
+        # Se usa para cerrar la base de datos
         def cerrar(self):
             # Guardamos los cambios hechos
             self.con.commit()
 
             # Cerramos la conexión a la base de datos. Buena práctica
             self.con.close()
-
 
     # Usamos un singleton
     instance = None
@@ -120,11 +145,11 @@ class SQL:
         return SQL.instance
 
     def __getattr__(self, item):
-        return getattr(self.instance,item)
+        return getattr(self.instance, item)
 
     def __setattr__(self, key, value):
-        return setattr(self.instance,key,value)
+        return setattr(self.instance, key, value)
+
 
 if __name__ == "__main__":
     print("Hola")
-
