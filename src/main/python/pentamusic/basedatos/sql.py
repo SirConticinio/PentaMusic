@@ -30,11 +30,11 @@ class SQL:
             )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS partitura (
                                 id TEXT PRIMARY KEY,
-                                nombre_creador TEXT,
-                                compositor TEXT,
-                                instrumento TEXT, 
                                 nombre_partitura TEXT NOT NULL,
+                                nombre_creador TEXT NOT NULL,
                                 publica NUMERIC,
+                                instrumento TEXT, 
+                                compositor TEXT,
                                 CONSTRAINT CK_Partitura_publico CHECK (publica IN (0, 1))
             )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS user_partitura (
@@ -46,26 +46,38 @@ class SQL:
                                                 FOREIGN KEY (user) REFERENCES usuarios(user),
                                                 FOREIGN KEY (partitura) REFERENCES partitura(id)
                             )""")
-            self.c.execute("""CREATE TRIGGER IF NOT EXISTS insert_partitura
-                                AFTER INSERT ON partitura
-                                FOR EACH ROW
-                                BEGIN
-                                    insert into user_partitura values (NEW.nombre_creador, NEW.id, null, null);
-                                END;""")
-
-            self.c.execute("""CREATE TRIGGER IF NOT EXISTS insertar_user_partitura 
-                                BEFORE INSERT ON user_partitura
-                                FOR EACH ROW
-                                BEGIN
-                                    -- Consulta para verificar si el usuario puede realizar la inserción
-                                    SELECT RAISE(ABORT, 'No tienes permiso para insertar en user_partitura')
-                                    WHERE NEW.user != NEW.nombre_creador AND NEW.publico != 1;
-                                END;""")
+            self.c.execute("""CREATE TRIGGER insert_partitura
+                                            AFTER INSERT ON partitura
+                                            FOR EACH ROW
+                                            BEGIN
+                                                insert into user_partitura values (NEW.id, NEW.nombre_creador, NULL, NULL);
+                                            END;
+                            """)
 
             self.c.execute("""CREATE VIEW IF NOT EXISTS hola AS SELECT * FROM partitura WHERE publica = 1""")
 
         # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
-        def insertar_partituras(self, id, nombre_partitura, publica, nombre_creador=None, compositor=None,
+        def insertar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor=None,
+                                instrumento=None):
+            query = ("INSERT INTO partitura (id, nombre_partitura, nombre_creador, publica, compositor, instrumento) "
+                     "VALUES (?, ?, ?, ?, ?, ?)")
+            # Tupla con los valores a insertar
+            values = (id, nombre_partitura, nombre_creador, publica, compositor, instrumento)
+            self.c.execute(query, values)
+            self.con.commit()
+
+        def consult_partiture(self, id: str) -> Sheet:
+            query = "SELECT * FROM partitura WHERE id = ?"
+            self.c.execute(query, (id,))
+
+            result = self.c.fetchone()
+
+            if result is not None:
+                print(result[0], result[1], result[2], result[3], result[4], result[5])
+                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
+
+        # -------------------------------------------- TABLA CONCIERTO -------------------------------------------------
+        def insertar_concierto(self, id, nombre_partitura, publica, nombre_creador=None, compositor=None,
                                 instrumento=None):
             query = ("INSERT INTO partitura (id, nombre_creador, compositor, instrumento, nombre_partitura, publica) "
                      "VALUES (?, ?, ?, ?, ?, ?)")
@@ -74,7 +86,7 @@ class SQL:
             self.c.execute(query, values)
             self.con.commit()
 
-        def consult_partiture(self, id: str) -> Sheet:
+        def consult_concert(self, id: str) -> Sheet:
             query = "SELECT * FROM partitura WHERE id = ?"
             self.c.execute(query, (id,))
 

@@ -30,6 +30,7 @@ class SheetEditWindow(Menu):
         self.instrument.setText(sheet.instrument)
         ownerLabel = QLabel("Dueño:")
         self.owner = QLineEdit()
+        print(sheet.owner)
         self.owner.setText(sheet.owner)
         self.owner.setReadOnly(True)
         icon = ("✅" if sheet.is_public else "❌")

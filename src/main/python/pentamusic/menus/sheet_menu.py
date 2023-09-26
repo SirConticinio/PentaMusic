@@ -68,7 +68,7 @@ class SheetWindow(Menu):
         path = home + "/" + newname
         shutil.copy2(filename, path)
 
-        self.datos.insertar_partituras(newname, originalname, False, self.session.user, "", "")
+        self.datos.insertar_partituras(newname, originalname, self.session.user, False, "", "")
         # todo guardar asociación
 
         # y ahora abrimos el menú de edición
