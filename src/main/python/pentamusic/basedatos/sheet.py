@@ -3,6 +3,6 @@ class Sheet:
         self.title = title
         self.is_public = is_public
         self.sheet_id = sheet_id
-        self.author = owner
+        self.owner = owner
         self.composer = composer
         self.instrument = instrument

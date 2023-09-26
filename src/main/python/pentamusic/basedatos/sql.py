@@ -2,8 +2,6 @@ import os
 import sqlite3
 
 from pentamusic.basedatos.sheet import Sheet
-from sheet import Sheet
-
 
 class SQL:
     class __SQL:

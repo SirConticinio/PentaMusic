@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget
 from pentamusic.basedatos.sql import SQL
 from .menu import Menu
 from pentamusic.basedatos.session import Session
+from .sheet_edit_menu import SheetEditWindow
 
 
 class SheetWindow(Menu):
@@ -62,9 +63,13 @@ class SheetWindow(Menu):
             os.makedirs(home)
 
         # aqui lo guardamos con un nombre random, pero en la base de datos se guarda el original
+        originalname = os.path.basename(filename)
         newname = str(uuid.uuid4())
         path = home + "/" + newname
         shutil.copy2(filename, path)
 
+        self.datos.insertar_partituras(newname, originalname, False, self.session.user, "", "")
+        # todo guardar asociación
 
-
+        # y ahora abrimos el menú de edición
+        SheetEditWindow(newname)
