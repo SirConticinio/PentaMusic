@@ -144,7 +144,3 @@ class SQL:
 
     def __setattr__(self, key, value):
         return setattr(self.instance, key, value)
-
-
-if __name__ == "__main__":
-    print("Hola")
