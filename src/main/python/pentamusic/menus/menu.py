@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget
 from pentamusic.basedatos.sql import SQL
+from pentamusic.crypto import Crypto
 
 
 class Menu:
@@ -11,6 +12,7 @@ class Menu:
 
         self.setup_window()
         self.datos = SQL()
+        self.crypto = Crypto()
         self.w.show()
 
     def setup_window(self):

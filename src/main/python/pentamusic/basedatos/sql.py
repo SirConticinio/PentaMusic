@@ -18,7 +18,8 @@ class SQL:
             # Creamos nuestra base de datos
             self.c.execute("""CREATE TABLE IF NOT EXISTS accounts (
                                 user_id TEXT PRIMARY KEY,
-                                user_pwd TEXT NOT NULL 
+                                user_pwd BLOB NOT NULL,
+                                salt BLOB NOT NULL
             )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS concerts (
                                 user TEXT,
@@ -79,16 +80,16 @@ class SQL:
         # todo meter
 
         # ------------------------------------------------ TABLA USUARIOS ----------------------------------------------
-        def insertar_usuario(self, user: str, password: str) -> None:
+        def insertar_usuario(self, user: str, token: bytes, salt: bytes) -> None:
             # Ahora insertamos elementos
             if not self.consultar_registro(user):
-                query = "INSERT INTO accounts (user_id, user_pwd) VALUES (?, ?)"
+                query = "INSERT INTO accounts (user_id, user_pwd, salt) VALUES (?, ?, ?)"
                 # Tupla con los valores a insertar
-                values = (user, password)
+                values = (user, token, salt)
                 self.c.execute(query, values)
                 self.con.commit()
             else:
-                print("El usuario ya existe")
+                raise Exception("El usuario ya existe.")
 
         def consultar_registro(self, user):
             query = "SELECT * FROM accounts WHERE user_id = ?"
@@ -105,21 +106,18 @@ class SQL:
                 print("Encontrado")
                 return True
 
-        def consultar_login(self, user: str, password: str) -> bool:
-            query = "SELECT * FROM accounts WHERE user_id = ? AND user_pwd = ?"
-            values = (user, password)
-            self.c.execute(query, values)
+        def consultar_dato_usuario(self, user, dato) -> bytes:
+            query = "SELECT * FROM accounts WHERE user_id = ?"
+            self.c.execute(query, (user,))
 
             # Recuperamos los resultados de la consulta
             result = self.c.fetchone()
 
             # Si result es None, significa que no se encontró en la tabla
             if result is None:
-                print("No encontrado")
-                return False
+                raise Exception("El usuario no se encuentra en la base de datos.")
             else:
-                print("Encontrado")
-                return True
+                return result[dato]
 
 
         # ------------------------------------------------ GENERAL ----------------------------------------------

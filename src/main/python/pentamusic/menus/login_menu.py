@@ -43,16 +43,10 @@ class LoginWindow(Menu):
         if self.isLogin:
             print("Logueando!")
             # comprobamos si contraseña coincide con la de base de datos
-            res = self.datos.consultar_login(user, password)
-            if res:
+            if self.crypto.login_user(user, password):
                 print("Login correcto.")
-                Session.set_session(user, password)
                 MainWindow()
-            else:
-                print("Login incorrecto.")
         else:
-            self.datos.insertar_usuario(user, password)
-            Session.set_session(user, password)
-            print("Registrando!")
+            self.crypto.register_user(user, password)
             MainWindow()
             # metemos el usuario en la base de datos si no existe
