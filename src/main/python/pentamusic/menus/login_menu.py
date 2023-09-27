@@ -43,7 +43,7 @@ class LoginWindow(Menu):
         if self.isLogin:
             print("Logueando!")
             # comprobamos si contraseña coincide con la de base de datos
-            res = self.datos.consulta_log(user, password)
+            res = self.datos.consultar_login(user, password)
             if res:
                 print("Login correcto.")
                 Session.set_session(user, password)
@@ -51,7 +51,7 @@ class LoginWindow(Menu):
             else:
                 print("Login incorrecto.")
         else:
-            self.datos.insertar(user, password)
+            self.datos.insertar_usuario(user, password)
             Session.set_session(user, password)
             print("Registrando!")
             MainWindow()

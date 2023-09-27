@@ -16,58 +16,56 @@ class SQL:
             self.c = self.con.cursor()
 
             # Creamos nuestra base de datos
-            self.c.execute("""CREATE TABLE IF NOT EXISTS usuarios (
-                                USER TEXT PRIMARY KEY, 
-                                password TEXT NOT NULL 
+            self.c.execute("""CREATE TABLE IF NOT EXISTS accounts (
+                                user_id TEXT PRIMARY KEY,
+                                user_pwd TEXT NOT NULL 
             )""")
-            self.c.execute("""CREATE TABLE IF NOT EXISTS conciertos (
-                                id numeric PRIMARY KEY,
+            self.c.execute("""CREATE TABLE IF NOT EXISTS concerts (
                                 user TEXT,
-                                nombre_concierto TEXT NOT NULL,
-                                fecha DATE,
-                                lugar TEXT NOT NULL,
-                                FOREIGN KEY (user) REFERENCES usuarios(user)
+                                title TEXT NOT NULL,
+                                date DATE,
+                                place TEXT NOT NULL,
+                                PRIMARY KEY (user, date),
+                                FOREIGN KEY (user) REFERENCES accounts(user_id)
             )""")
-            self.c.execute("""CREATE TABLE IF NOT EXISTS partitura (
+            self.c.execute("""CREATE TABLE IF NOT EXISTS sheets (
                                 id TEXT PRIMARY KEY,
-                                nombre_partitura TEXT NOT NULL,
-                                nombre_creador TEXT NOT NULL,
-                                publica NUMERIC,
-                                instrumento TEXT, 
-                                compositor TEXT,
-                                CONSTRAINT CK_Partitura_publico CHECK (publica IN (0, 1))
+                                title TEXT NOT NULL,
+                                owner TEXT NOT NULL,
+                                public NUMERIC,
+                                instrument TEXT, 
+                                composer TEXT,
+                                CONSTRAINT CK_sheet_public CHECK (public IN (0, 1))
             )""")
-            self.c.execute("""CREATE TABLE IF NOT EXISTS user_partitura (
+            self.c.execute("""CREATE TABLE IF NOT EXISTS accounts_sheets (
                                                 user TEXT,
-                                                partitura NUMERIC,
-                                                comentarios TEXT,
-                                                compas TEXT,
-                                                PRIMARY KEY (user, partitura),
-                                                FOREIGN KEY (user) REFERENCES usuarios(user),
-                                                FOREIGN KEY (partitura) REFERENCES partitura(id)
+                                                sheet NUMERIC,
+                                                comments TEXT,
+                                                learned_bar NUMERIC,
+                                                PRIMARY KEY (user, sheet),
+                                                FOREIGN KEY (user) REFERENCES accounts(user_id),
+                                                FOREIGN KEY (sheet) REFERENCES sheets(id)
                             )""")
-            self.c.execute("""CREATE TRIGGER  IF NOT EXISTS insert_partitura
-                                            AFTER INSERT ON partitura
+            self.c.execute("""CREATE TRIGGER IF NOT EXISTS insert_sheets
+                                            AFTER INSERT ON sheets
                                             FOR EACH ROW
                                             BEGIN
-                                                insert into user_partitura values (NEW.id, NEW.nombre_creador, NULL, NULL);
+                                                INSERT INTO accounts_sheets VALUES (NEW.id, NEW.owner, NULL, 0);
                                             END;
                             """)
 
-            self.c.execute("""CREATE VIEW IF NOT EXISTS hola AS SELECT * FROM partitura WHERE publica = 1""")
+            self.c.execute("""CREATE VIEW IF NOT EXISTS public_sheets AS SELECT * FROM sheets WHERE public = 1""")
 
         # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
-        def insertar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor=None,
-                                instrumento=None):
-            query = ("INSERT INTO partitura (id, nombre_partitura, nombre_creador, publica, compositor, instrumento) "
-                     "VALUES (?, ?, ?, ?, ?, ?)")
+        def insertar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor=None, instrumento=None):
+            query = "INSERT INTO sheets (id, title, owner, public, composer, instrument) VALUES (?, ?, ?, ?, ?, ?)"
             # Tupla con los valores a insertar
-            values = (id, nombre_partitura, nombre_creador, publica, compositor, instrumento)
+            values = (id, nombre_partitura, nombre_creador, publica, instrumento, compositor)
             self.c.execute(query, values)
             self.con.commit()
 
-        def consult_partiture(self, id: str) -> Sheet:
-            query = "SELECT * FROM partitura WHERE id = ?"
+        def check_partitura(self, id: str) -> Sheet:
+            query = "SELECT * FROM sheets WHERE id = ?"
             self.c.execute(query, (id,))
 
             result = self.c.fetchone()
@@ -77,29 +75,14 @@ class SQL:
                 return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
 
         # -------------------------------------------- TABLA CONCIERTO -------------------------------------------------
-        def insertar_concierto(self, id, nombre_partitura, publica, nombre_creador=None, compositor=None,
-                                instrumento=None):
-            query = ("INSERT INTO partitura (id, nombre_creador, compositor, instrumento, nombre_partitura, publica) "
-                     "VALUES (?, ?, ?, ?, ?, ?)")
-            # Tupla con los valores a insertar
-            values = (id, nombre_creador, compositor, instrumento, nombre_partitura, publica)
-            self.c.execute(query, values)
-            self.con.commit()
 
-        def consult_concert(self, id: str) -> Sheet:
-            query = "SELECT * FROM partitura WHERE id = ?"
-            self.c.execute(query, (id,))
-
-            result = self.c.fetchone()
-
-            if result is not None:
-                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
+        # todo meter
 
         # ------------------------------------------------ TABLA USUARIOS ----------------------------------------------
-        def insertar(self, user: str, password: str) -> None:
+        def insertar_usuario(self, user: str, password: str) -> None:
             # Ahora insertamos elementos
-            if not self.consultar_reg(user):
-                query = "INSERT INTO usuarios (user, password) VALUES (?, ?)"
+            if not self.consultar_registro(user):
+                query = "INSERT INTO accounts (user_id, user_pwd) VALUES (?, ?)"
                 # Tupla con los valores a insertar
                 values = (user, password)
                 self.c.execute(query, values)
@@ -107,8 +90,8 @@ class SQL:
             else:
                 print("El usuario ya existe")
 
-        def consultar_reg(self, user):
-            query = "SELECT * FROM usuarios WHERE user = ?"
+        def consultar_registro(self, user):
+            query = "SELECT * FROM accounts WHERE user_id = ?"
             self.c.execute(query, (user,))
 
             # Recuperamos los resultados de la consulta
@@ -122,8 +105,8 @@ class SQL:
                 print("Encontrado")
                 return True
 
-        def consulta_log(self, user: str, password: str) -> bool:
-            query = "SELECT * FROM usuarios WHERE user = ? AND password = ?"
+        def consultar_login(self, user: str, password: str) -> bool:
+            query = "SELECT * FROM accounts WHERE user_id = ? AND user_pwd = ?"
             values = (user, password)
             self.c.execute(query, values)
 
@@ -138,6 +121,8 @@ class SQL:
                 print("Encontrado")
                 return True
 
+
+        # ------------------------------------------------ GENERAL ----------------------------------------------
         # Se usa para cerrar la base de datos
         def cerrar(self):
             # Guardamos los cambios hechos

@@ -17,7 +17,7 @@ class SheetEditWindow(Menu):
 
         self.session = Session()
         welcome = QLabel("Edita los datos de la partitura y haz click en 'confirmar' para terminar:")
-        sheet = self.datos.consult_partiture(sheet_id)
+        sheet = self.datos.check_partitura(sheet_id)
 
         titleLabel = QLabel("Título:")
         self.title = QLineEdit()
