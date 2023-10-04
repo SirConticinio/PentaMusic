@@ -41,6 +41,7 @@ class SheetWindow(Menu):
         self.container.setLayout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
+
         # todo
         for i in range(10):
             nombre = "test nº" + str(i)
