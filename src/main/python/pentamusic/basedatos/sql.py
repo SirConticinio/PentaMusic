@@ -65,6 +65,13 @@ class SQL:
             self.c.execute(query, values)
             self.con.commit()
 
+        def actualizar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor, instrumento):
+            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=? WHERE id=?"
+            # Tupla con los valores a insertar
+            values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, id)
+            self.c.execute(query, values)
+            self.con.commit()
+
         def check_partitura(self, id: str) -> Sheet:
             query = "SELECT * FROM sheets WHERE id = ?"
             self.c.execute(query, (id,))
