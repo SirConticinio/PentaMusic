@@ -18,10 +18,11 @@ class Crypto:
             encoded = user_pwd.encode('UTF-8')
             token = kdf.derive(encoded)
 
-            token64 = base64.encodebytes(token)
+            #token64 = base64.encodebytes(token)
+
             try:
-                SQL().insertar_usuario(user_id, token64, salt)
-                Session.set_session(user_id, token64)
+                SQL().insertar_usuario(user_id, token, salt)
+                Session.set_session(user_id, token, "")
             except Exception as e:
                 Dialog(str(e))
 
@@ -31,11 +32,11 @@ class Crypto:
                 token = SQL().consultar_dato_usuario(user_id, 1)
                 encoded = user_pwd.encode('UTF-8')
                 kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-                token64 = base64.encode(token)
+                #token64 = base64.encode(token)
 
                 try:
-                    kdf.verify(encoded, token64)
-                    Session.set_session(user_id, token64)
+                    kdf.verify(encoded, token)
+                    Session.set_session(user_id, token, "")
                     return True
                 except Exception as e:
                     Dialog("La contraseña es incorrecta.")

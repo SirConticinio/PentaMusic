@@ -33,8 +33,8 @@ class SheetEditWindow(Menu):
         print(sheet.owner)
         self.owner.setText(sheet.owner)
         self.owner.setReadOnly(True)
-        icon = ("✅" if sheet.is_public else "❌")
-        publicLabel = QLabel("¿Es pública? -> " + icon)
+        public = QCheckBox("¿Es pública?")
+        public.setCheckState(False)
 
         confirmar = QPushButton("Confirmar")
         confirmar.clicked.connect(lambda: self.clicked_confirmar())
@@ -49,11 +49,12 @@ class SheetEditWindow(Menu):
         layout.addWidget(self.instrument)
         layout.addWidget(ownerLabel)
         layout.addWidget(self.owner)
-        layout.addWidget(publicLabel)
+        layout.addWidget(public)
         layout.addWidget(confirmar)
 
         self.container.setLayout(layout)
 
     def clicked_confirmar(self):
         # aquí volvemos a guardar la partitura
+
         pass
