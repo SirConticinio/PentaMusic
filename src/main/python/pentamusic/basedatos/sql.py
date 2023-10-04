@@ -94,8 +94,24 @@ class SQL:
                 return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
 
         # -------------------------------------------- TABLA CONCIERTO -------------------------------------------------
+        def insertar_concerts(self, user, title, data, place):
+            query = "INSERT INTO concerts (user, title, data, place) VALUES (?, ?, ?, ?, ?, ?)"
+            # Tupla con los valores a insertar
+            values = (id, user, title, data, place)
+            self.c.execute(query, values)
+            self.con.commit()
 
-        # todo meter
+        def update_concert(self):
+            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=? WHERE id=?"
+            # Tupla con los valores a insertar
+            # values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, id)
+            # self.c.execute(query, values)
+            self.con.commit()
+        def check_concerts(self, user: str, date) -> Sheet:
+            query = "SELECT * FROM concerts WHERE user = ?, date = ?"
+            self.c.execute(query, (user, date))
+
+            result = self.c.fetchone()
 
         # ------------------------------------------------ TABLA USUARIOS ----------------------------------------------
         def insertar_usuario(self, user: str, token: bytes, salt: bytes) -> None:
@@ -118,10 +134,8 @@ class SQL:
 
             # Si result es None, significa que no se encontró en la tabla
             if result is None:
-                print("No encontrado")
                 return False
             else:
-                print("Encontrado")
                 return True
 
         def consultar_dato_usuario(self, user, dato) -> bytes:
