@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget
 from pentamusic.basedatos.sql import SQL
 from .menu import Menu
 from pentamusic.basedatos.session import Session
-from .sheet_edit_menu import SheetEditWindow
+from pentamusic.menus.sheet_edit_menu import SheetEditWindow
 
 
 class SheetWindow(Menu):
@@ -41,10 +41,9 @@ class SheetWindow(Menu):
         self.container.setLayout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
-
-        # todo
-        for i in range(10):
-            nombre = "test nº" + str(i)
+        sheets = self.datos.get_partituras(self.session.user)
+        for sheet in sheets:
+            nombre = sheet.title
             label = QLabel(nombre)
             group.addWidget(label)
 

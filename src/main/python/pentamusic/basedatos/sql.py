@@ -51,7 +51,7 @@ class SQL:
                                             AFTER INSERT ON sheets
                                             FOR EACH ROW
                                             BEGIN
-                                                INSERT INTO accounts_sheets VALUES (NEW.id, NEW.owner, NULL, 0);
+                                                INSERT INTO accounts_sheets VALUES (NEW.owner, NEW.id, NULL, 0);
                                             END;
                             """)
 
@@ -71,6 +71,17 @@ class SQL:
             values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, id)
             self.c.execute(query, values)
             self.con.commit()
+
+        def get_partituras(self, owner: str):
+            query = "SELECT * FROM accounts_sheets WHERE user = ?"
+            self.c.execute(query, (owner,))
+
+            result = self.c.fetchall()
+
+            sheets = []
+            for row in result:
+                sheets.append(Sheet(row[0], row[1], row[2], row[3], row[4], row[5]))
+            return sheets
 
         def check_partitura(self, id: str) -> Sheet:
             query = "SELECT * FROM sheets WHERE id = ?"
