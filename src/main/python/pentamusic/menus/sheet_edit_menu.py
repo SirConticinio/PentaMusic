@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget
 from pentamusic.basedatos.sql import SQL
 from .menu import Menu
 from pentamusic.basedatos.session import Session
-#from pentamusic.menus.sheet_menu import SheetWindow
 
 
 class SheetEditWindow(Menu):
@@ -18,8 +17,9 @@ class SheetEditWindow(Menu):
 
         self.session = Session()
         welcome = QLabel("Edita los datos de la partitura y haz click en 'confirmar' para terminar:")
-        sheet = self.datos.check_partitura(sheet_id)
+        sheet = self.datos.get_partitura(sheet_id)
         self.sheet_id = sheet_id
+        self.owner = sheet.owner
 
         titleLabel = QLabel("Título:")
         self.title = QLineEdit()
@@ -30,13 +30,8 @@ class SheetEditWindow(Menu):
         instrumentLabel = QLabel("Instrumento:")
         self.instrument = QLineEdit()
         self.instrument.setText(sheet.instrument)
-        ownerLabel = QLabel("Dueño:")
-        self.owner = QLineEdit()
-        print(sheet.owner)
-        self.owner.setText(sheet.owner)
-        self.owner.setReadOnly(True)
         self.public = QCheckBox("¿Es pública?")
-        self.public.setCheckState(False)
+        self.public.setCheckState(sheet.is_public)
 
         confirmar = QPushButton("Confirmar")
         confirmar.clicked.connect(lambda: self.clicked_confirmar())
@@ -49,18 +44,14 @@ class SheetEditWindow(Menu):
         layout.addWidget(self.composer)
         layout.addWidget(instrumentLabel)
         layout.addWidget(self.instrument)
-        layout.addWidget(ownerLabel)
-        layout.addWidget(self.owner)
         layout.addWidget(self.public)
         layout.addWidget(confirmar)
 
-        self.container.setLayout(layout)
+        self.set_layout(layout)
 
     def clicked_confirmar(self):
         # aquí volvemos a guardar la partitura
         ispublic = 0 if self.public.checkState() == 0 else 1
-        print("La x es: ")
-        print(ispublic)
-        self.datos.actualizar_partituras(self.sheet_id, self.title.text(), self.owner.text(), ispublic, self.composer.text(),
+        self.datos.actualizar_partituras(self.sheet_id, self.title.text(), self.owner, ispublic, self.composer.text(),
                                          self.instrument.text())
-        #SheetWindow()
+        self.manager.open_sheet_menu()

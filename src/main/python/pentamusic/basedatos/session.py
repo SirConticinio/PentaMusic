@@ -18,6 +18,10 @@ class Session():
         Session.instance = Session.__Session(usuario, password, key)
         return Session.instance
 
+    @staticmethod
+    def revoke():
+        Session.instance = None
+
     def __getattr__(self, item):
         return getattr(self.instance,item)
 

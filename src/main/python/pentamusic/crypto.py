@@ -18,8 +18,6 @@ class Crypto:
             encoded = user_pwd.encode('UTF-8')
             token = kdf.derive(encoded)
 
-            #token64 = base64.encodebytes(token)
-
             try:
                 SQL().insertar_usuario(user_id, token, salt)
                 Session.set_session(user_id, token, "")
@@ -32,7 +30,6 @@ class Crypto:
                 token = SQL().consultar_dato_usuario(user_id, 1)
                 encoded = user_pwd.encode('UTF-8')
                 kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-                #token64 = base64.encode(token)
 
                 try:
                     kdf.verify(encoded, token)
@@ -45,6 +42,18 @@ class Crypto:
             except Exception as e:
                 Dialog(str(e))
 
+        def login_debug(self, debug_username, debug_password):
+            if not SQL().consultar_registro(debug_username):
+                # tenemos que meter al usuario en la tabla
+                salt = os.urandom(16)
+                kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+                encoded = debug_password.encode('UTF-8')
+                token = kdf.derive(encoded)
+                SQL().insertar_usuario(debug_username, token, salt)
+
+            # ahora logueamos al usuario
+            token = SQL().consultar_dato_usuario(debug_username, 1)
+            Session.set_session(debug_username, token, "")
 
     # Usamos un singleton
     instance = None

@@ -1,10 +1,13 @@
 # Subclass QMainWindow to customize your application's main window
 import os
 import shutil
+import subprocess
+import sys
 import uuid
 
 from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QScrollArea, QFileDialog
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QScrollArea, QFileDialog, \
+    QHBoxLayout
 from pentamusic.basedatos.sql import SQL
 from .menu import Menu
 from pentamusic.basedatos.session import Session
@@ -22,11 +25,13 @@ class SheetWindow(Menu):
         groupLayout = QVBoxLayout()
         self.set_partituras(groupLayout)
         group.setLayout(groupLayout)
+        groupLayout.addStretch(1)
+        group.adjustSize()
 
         scroll = QScrollArea()
         scroll.setWidget(group)
         scroll.setWidgetResizable(True)
-        scroll.setFixedHeight(200)
+        scroll.setMinimumSize(500, 200)
 
         pub = QPushButton("Importar partitura pública")
         pub.clicked.connect(lambda: self.clicked_importar_publica())
@@ -34,22 +39,31 @@ class SheetWindow(Menu):
         arch.clicked.connect(lambda: self.clicked_importar_archivo(arch))
 
         layout = QVBoxLayout()
+        self.add_back_button(layout, lambda: self.manager.open_main_menu())
         layout.addWidget(welcome)
         layout.addWidget(scroll)
         layout.addWidget(pub)
         layout.addWidget(arch)
-        self.container.setLayout(layout)
+        self.set_layout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
-        sheets = self.datos.get_partituras(self.session.user)
+        sheets = self.datos.get_partituras_usuario(self.session.user)
         for sheet in sheets:
-            nombre = sheet.title
-            label = QLabel(nombre)
-            group.addWidget(label)
+            row = QWidget()
+            layout = QHBoxLayout()
+            edit = QPushButton("Editar")
+            edit.setFixedWidth(80)
+            sheet_id = sheet.sheet_id
+            edit.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_edit(sid))
+            view = QPushButton(sheet.title)
+            view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
+            layout.addWidget(edit)
+            layout.addWidget(view)
+            row.setLayout(layout)
+            group.addWidget(row)
 
     def clicked_importar_publica(self):
-        # todo
-        pass
+        self.manager.open_sheet_public_menu()
 
     def clicked_importar_archivo(self, arch):
         file, _ = QFileDialog.getOpenFileName(arch, "Elige un archivo de partitura", "", "PDF (*.pdf);;PNG (*.png);;All Files (*);;")
@@ -57,19 +71,25 @@ class SheetWindow(Menu):
             print(file)
             self.save_sheet(file)
 
+    def clicked_edit(self, sheet_id):
+        self.manager.open_sheet_edit_menu(sheet_id)
+
+    def clicked_open(self, sheet_id):
+        path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
+        self.open_file(path)
+
     def save_sheet(self, filename):
         home = os.path.expanduser("~/PentaMusic/Sheets")
         if not os.path.exists(home):
             os.makedirs(home)
 
         # aqui lo guardamos con un nombre random, pero en la base de datos se guarda el original
-        originalname = os.path.basename(filename)
+        originalname = os.path.basename(filename).removesuffix(".pdf")
         newname = str(uuid.uuid4())
-        path = home + "/" + newname
+        path = home + "/" + newname + ".pdf"
         shutil.copy2(filename, path)
 
         self.datos.insertar_partituras(newname, originalname, self.session.user, False, "", "")
-        # todo guardar asociación
 
         # y ahora abrimos el menú de edición
-        SheetEditWindow(newname)
+        self.manager.open_sheet_edit_menu(newname)

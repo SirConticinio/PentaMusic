@@ -1,9 +1,8 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from menus.init_menu import InitWindow
-
-
-# Only needed for access to command line arguments
 import sys
+
+from pentamusic.menu_manager import MenuManager
 
 # You need one (and only one) QApplication instance per application.
 # Pass in sys.argv to allow command line arguments for your app.
@@ -11,7 +10,7 @@ import sys
 app = QApplication(sys.argv)
 
 # Create a Qt widget, which will be our window.
-window = InitWindow()
+MenuManager().open_init_menu()
 
 # Start the event loop.
 app.exec()
