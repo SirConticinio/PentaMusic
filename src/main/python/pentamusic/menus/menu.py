@@ -3,6 +3,8 @@ import subprocess
 import sys
 
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QBoxLayout, QApplication
+
+from pentamusic.basedatos.session import Session
 from pentamusic.basedatos.sql import SQL
 from pentamusic.crypto import Crypto
 from pentamusic.menu_manager import MenuManager
@@ -20,6 +22,7 @@ class Menu:
         self.crypto = Crypto()
         self.manager = MenuManager()
         self.w.show()
+        self.session = Session()
 
     def setup_window(self):
         self.w.setWindowTitle("PentaMusic")

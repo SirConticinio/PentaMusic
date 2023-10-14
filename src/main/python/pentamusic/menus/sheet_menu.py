@@ -5,7 +5,7 @@ import subprocess
 import sys
 import uuid
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QScrollArea, QFileDialog, \
     QHBoxLayout
 from pentamusic.basedatos.sql import SQL
@@ -18,7 +18,6 @@ class SheetWindow(Menu):
     def __init__(self):
         super().__init__()
 
-        self.session = Session()
         welcome = QLabel("Aquí tienes tu lista de partituras:")
 
         group = QWidget()
@@ -47,15 +46,19 @@ class SheetWindow(Menu):
         self.set_layout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
-        sheets = self.datos.get_partituras_usuario(self.session.user)
-        for sheet in sheets:
+        sheets = self.datos.get_all_usersheets(self.session.user)
+        for user_sheet in sheets:
             row = QWidget()
             layout = QHBoxLayout()
             edit = QPushButton("Editar")
             edit.setFixedWidth(80)
-            sheet_id = sheet.sheet_id
+            sheet_id = user_sheet.sheet.sheet_id
             edit.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_edit(sid))
-            view = QPushButton(sheet.title)
+            sheet_info = user_sheet.sheet.title
+            sheet_info += "\nCompás aprendido: " + str(user_sheet.learned_bar)
+            sheet_info += "\nComentarios: " + (user_sheet.comments if user_sheet.comments is not None else "-")
+            view = QPushButton(sheet_info)
+            view.setStyleSheet("text-align:left; padding:8px")
             view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
             layout.addWidget(edit)
             layout.addWidget(view)
@@ -72,7 +75,7 @@ class SheetWindow(Menu):
             self.save_sheet(file)
 
     def clicked_edit(self, sheet_id):
-        self.manager.open_sheet_edit_menu(sheet_id)
+        self.manager.open_usersheet_edit_menu(sheet_id)
 
     def clicked_open(self, sheet_id):
         path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
@@ -92,4 +95,4 @@ class SheetWindow(Menu):
         self.datos.insertar_partituras(newname, originalname, self.session.user, False, "", "")
 
         # y ahora abrimos el menú de edición
-        self.manager.open_sheet_edit_menu(newname)
+        self.manager.open_usersheet_edit_menu(newname)

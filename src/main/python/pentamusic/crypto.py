@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from pentamusic.basedatos.session import Session
 from pentamusic.basedatos.sql import SQL
-from pentamusic.menus.dialog import Dialog
+from pentamusic.menus.dialog import OkDialog
 
 
 class Crypto:
@@ -22,7 +22,7 @@ class Crypto:
                 SQL().insertar_usuario(user_id, token, salt)
                 Session.set_session(user_id, token, "")
             except Exception as e:
-                Dialog(str(e))
+                OkDialog(str(e))
 
         def login_user(self, user_id, user_pwd) -> bool:
             try:
@@ -36,11 +36,11 @@ class Crypto:
                     Session.set_session(user_id, token, "")
                     return True
                 except Exception as e:
-                    Dialog("La contraseña es incorrecta.")
+                    OkDialog("La contraseña es incorrecta.")
                     return False
 
             except Exception as e:
-                Dialog(str(e))
+                OkDialog(str(e))
 
         def login_debug(self, debug_username, debug_password):
             if not SQL().consultar_registro(debug_username):

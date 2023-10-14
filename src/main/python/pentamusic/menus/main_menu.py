@@ -11,7 +11,6 @@ class MainWindow(Menu):
     def __init__(self):
         super().__init__()
 
-        self.session = Session()
         welcome = QLabel("¡Bienvenido, " + self.session.user + "!")
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 

@@ -18,7 +18,6 @@ class SheetPublicWindow(Menu):
     def __init__(self):
         super().__init__()
 
-        self.session = Session()
         welcome = QLabel("Aquí están las partituras públicas:")
 
         group = QWidget()
@@ -41,7 +40,7 @@ class SheetPublicWindow(Menu):
 
     def set_partituras(self, group: QVBoxLayout):
         public_sheets = self.datos.get_partituras_publicas()
-        my_sheets = self.datos.get_partituras_usuario(self.session.user)
+        my_sheets = self.datos.get_all_usersheets(self.session.user)
         for sheet in public_sheets:
             row = QWidget()
             layout = QHBoxLayout()
@@ -59,13 +58,13 @@ class SheetPublicWindow(Menu):
                 group.addWidget(row)
 
     def find_partitura(self, my_sheets, sheet_id):
-        for sheet in my_sheets:
-            if sheet.sheet_id == sheet_id:
+        for user_sheet in my_sheets:
+            if user_sheet.sheet.sheet_id == sheet_id:
                 return True
         return False
 
     def clicked_import(self, sheet_id):
-        self.datos.insertar_partitura_publica(Session().user, sheet_id)
+        self.datos.insertar_usersheet(Session().user, sheet_id)
         print("Partitura importada.")
         self.manager.open_sheet_public_menu()
 

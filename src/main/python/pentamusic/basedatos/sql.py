@@ -3,6 +3,8 @@ import sqlite3
 import shutil
 
 from pentamusic.basedatos.sheet import Sheet
+from pentamusic.basedatos.user_sheet import UserSheet
+
 
 class SQL:
     class __SQL:
@@ -53,11 +55,21 @@ class SQL:
                                                             FOREIGN KEY (user) REFERENCES accounts(user_id),
                                                             FOREIGN KEY (sheet) REFERENCES sheets(id)
                                         )""")
+
+            # antes de insertar una partitura, creamos una asociación con el usuario actual
             self.c.execute("""CREATE TRIGGER IF NOT EXISTS insert_sheets
                                                         AFTER INSERT ON sheets
                                                         FOR EACH ROW
                                                         BEGIN
                                                             INSERT INTO accounts_sheets VALUES (NEW.owner, NEW.id, NULL, 0);
+                                                        END;
+                                        """)
+            # antes de borrar una partitura, borramos todas sus asociaciones con los usuarios
+            self.c.execute("""CREATE TRIGGER IF NOT EXISTS delete_sheets
+                                                        BEFORE DELETE ON sheets
+                                                        FOR EACH ROW
+                                                        BEGIN
+                                                            DELETE FROM accounts_sheets WHERE sheet=OLD.id;
                                                         END;
                                         """)
             self.c.execute("""CREATE VIEW IF NOT EXISTS public_sheets AS SELECT * FROM sheets WHERE public = 1""")
@@ -69,27 +81,18 @@ class SQL:
             self.c.execute(query, values)
             self.con.commit()
 
-        def insertar_partitura_publica(self, user_id, sheet_id):
-            query = "INSERT INTO accounts_sheets (user, sheet) VALUES (?, ?)"
-            values = (user_id, sheet_id)
+        def delete_partitura(self, sheet_id):
+            query = "DELETE FROM sheets WHERE id=?"
+            values = (sheet_id,)
             self.c.execute(query, values)
             self.con.commit()
+            os.remove(self.basepath + "/Sheets/" + sheet_id + ".pdf")
 
         def actualizar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor, instrumento):
             query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=? WHERE id=?"
             values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, id)
             self.c.execute(query, values)
             self.con.commit()
-
-        def get_partituras_usuario(self, owner: str):
-            query = "SELECT * FROM accounts_sheets WHERE user = ?"
-            self.c.execute(query, (owner,))
-            result = self.c.fetchall()
-
-            sheets = []
-            for row in result:
-                sheets.append(self.get_partitura(row[1]))
-            return sheets
 
         def get_partituras_publicas(self):
             query = "SELECT * FROM sheets WHERE public = 1"
@@ -109,6 +112,45 @@ class SQL:
 
             if result is not None:
                 return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
+
+        # ------------------------------------------- TABLA ACCOUNTS_SHEET ---------------------------------------------
+        def get_usersheet(self, user: str, sheet_id: str) -> UserSheet:
+            query = "SELECT * FROM accounts_sheets WHERE user = ? AND sheet = ?"
+            self.c.execute(query, (user, sheet_id))
+            result = self.c.fetchone()
+            if result is not None:
+                return UserSheet(result[0], self.get_partitura(result[1]), result[2], result[3])
+
+        def get_all_usersheets(self, owner: str):
+            query = "SELECT * FROM accounts_sheets WHERE user = ?"
+            self.c.execute(query, (owner,))
+            result = self.c.fetchall()
+            sheets = []
+            for row in result:
+                sheets.append(UserSheet(row[0], self.get_partitura(row[1]), row[2], row[3]))
+            return sheets
+
+        def insertar_usersheet(self, user_id, sheet_id):
+            query = "INSERT INTO accounts_sheets (user, sheet, comments, learned_bar) VALUES (?, ?, ?, 0)"
+            values = (user_id, sheet_id, None)
+            self.c.execute(query, values)
+            self.con.commit()
+
+        def actualizar_usersheet(self, sheet_id, user, comments, learned_bar: int):
+            query = "UPDATE accounts_sheets SET sheet=?,user=?,comments=?,learned_bar=? WHERE sheet=? AND user=?"
+            values = (sheet_id, user, comments, learned_bar, sheet_id, user)
+            self.c.execute(query, values)
+            self.con.commit()
+
+        def delete_usersheet(self, sheet_id, user):
+            query = "DELETE FROM accounts_sheets WHERE sheet=? AND user=?"
+            values = (sheet_id, user)
+            self.c.execute(query, values)
+            self.con.commit()
+            # si es el dueño de la partitura, entonces también borramos la partitura
+            sheet = self.get_partitura(sheet_id)
+            if sheet.owner == user:
+                self.delete_partitura(sheet_id)
 
         # -------------------------------------------- TABLA CONCIERTO -------------------------------------------------
         def insertar_concerts(self, user, title, data, place):

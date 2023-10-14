@@ -15,7 +15,6 @@ class SheetEditWindow(Menu):
     def __init__(self, sheet_id):
         super().__init__()
 
-        self.session = Session()
         welcome = QLabel("Edita los datos de la partitura y haz click en 'confirmar' para terminar:")
         sheet = self.datos.get_partitura(sheet_id)
         self.sheet_id = sheet_id
@@ -31,7 +30,7 @@ class SheetEditWindow(Menu):
         self.instrument = QLineEdit()
         self.instrument.setText(sheet.instrument)
         self.public = QCheckBox("¿Es pública?")
-        self.public.setCheckState(sheet.is_public)
+        self.public.setChecked(sheet.is_public)
 
         confirmar = QPushButton("Confirmar")
         confirmar.clicked.connect(lambda: self.clicked_confirmar())

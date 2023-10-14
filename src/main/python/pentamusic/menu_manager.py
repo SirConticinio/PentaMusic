@@ -17,6 +17,10 @@ class MenuManager:
             from pentamusic.menus.sheet_menu import SheetWindow
             SheetWindow()
 
+        def open_usersheet_edit_menu(self, sheet_id):
+            from pentamusic.menus.sheet_user_edit_menu import UserSheetEditWindow
+            UserSheetEditWindow(sheet_id)
+
         def open_sheet_edit_menu(self, sheet_id):
             from pentamusic.menus.sheet_edit_menu import SheetEditWindow
             SheetEditWindow(sheet_id)
