@@ -1,7 +1,9 @@
+import datetime
 import os
 import sqlite3
 import shutil
 
+from pentamusic.basedatos.concert import Concert
 from pentamusic.basedatos.sheet import Sheet
 from pentamusic.basedatos.user_sheet import UserSheet
 
@@ -18,7 +20,7 @@ class SQL:
             if not os.path.exists(self.basepath):
                 print("Creada carpeta del programa.")
                 os.makedirs(self.basepath)
-            self.con = sqlite3.connect(self.basepath + "/penta.db")
+            self.con = sqlite3.connect(self.basepath + "/penta.db", detect_types = sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
 
             # Esto lo usaremos para poder ejecutar comandos SQL
             self.c = self.con.cursor()
@@ -32,7 +34,7 @@ class SQL:
             self.c.execute("""CREATE TABLE IF NOT EXISTS concerts (
                                             user TEXT,
                                             title TEXT NOT NULL,
-                                            date DATE,
+                                            date TIMESTAMP,
                                             place TEXT NOT NULL,
                                             PRIMARY KEY (user, date),
                                             FOREIGN KEY (user) REFERENCES accounts(user_id)
@@ -48,14 +50,21 @@ class SQL:
                         )""")
             self.c.execute("""CREATE TABLE IF NOT EXISTS accounts_sheets (
                                                             user TEXT,
-                                                            sheet NUMERIC,
+                                                            sheet TEXT,
                                                             comments TEXT,
                                                             learned_bar NUMERIC,
                                                             PRIMARY KEY (user, sheet),
                                                             FOREIGN KEY (user) REFERENCES accounts(user_id),
                                                             FOREIGN KEY (sheet) REFERENCES sheets(id)
                                         )""")
-
+            self.c.execute("""CREATE TABLE IF NOT EXISTS concerts_sheets (
+                                                            concert_user TEXT,
+                                                            concert_date TIMESTAMP,
+                                                            sheet TEXT,
+                                                            PRIMARY KEY (concert_user, concert_date, sheet),
+                                                            FOREIGN KEY (concert_user, concert_date) REFERENCES concerts(user, date) ON UPDATE CASCADE,
+                                                            FOREIGN KEY (sheet) REFERENCES sheets(id)
+                                        )""")
             # antes de insertar una partitura, creamos una asociación con el usuario actual
             self.c.execute("""CREATE TRIGGER IF NOT EXISTS insert_sheets
                                                         AFTER INSERT ON sheets
@@ -70,8 +79,17 @@ class SQL:
                                                         FOR EACH ROW
                                                         BEGIN
                                                             DELETE FROM accounts_sheets WHERE sheet=OLD.id;
+                                                            DELETE FROM concerts_sheets WHERE sheet=OLD.id;
                                                         END;
                                         """)
+            self.c.execute("""CREATE TRIGGER IF NOT EXISTS delete_concert
+                                                        BEFORE DELETE ON concerts
+                                                        FOR EACH ROW
+                                                        BEGIN
+                                                            DELETE FROM concerts_sheets WHERE concert_user=OLD.user AND concert_date=OLD.date;
+                                                        END;
+                                        """)
+
             self.c.execute("""CREATE VIEW IF NOT EXISTS public_sheets AS SELECT * FROM sheets WHERE public = 1""")
 
         # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
@@ -153,26 +171,70 @@ class SQL:
                 self.delete_partitura(sheet_id)
 
         # -------------------------------------------- TABLA CONCIERTO -------------------------------------------------
-        def insertar_concerts(self, user, title, data, place):
-            query = "INSERT INTO concerts (user, title, data, place) VALUES (?, ?, ?, ?, ?, ?)"
+        def insertar_concerts(self, user, title, date, place):
+            query = "INSERT INTO concerts (user, title, date, place) VALUES (?, ?, ?, ?)"
             # Tupla con los valores a insertar
-            values = (id, user, title, data, place)
+            values = (user, title, self.format_date(date), place)
             self.c.execute(query, values)
             self.con.commit()
 
-        def update_concert(self):
-            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=? WHERE id=?"
-            # Tupla con los valores a insertar
-            # values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, id)
-            # self.c.execute(query, values)
-            self.con.commit()
-        def check_concerts(self, user: str, date) -> Sheet:
-            query = "SELECT * FROM concerts WHERE user = ?, date = ?"
-            self.c.execute(query, (user, date))
+        def format_date(self, date: datetime.datetime) -> str:
+            f = '%Y-%m-%d %H:%M:%S'
+            return date.strftime(f)
 
+        def delete_concert(self, user, date):
+            query = "DELETE FROM concerts WHERE user=? AND date=?"
+            values = (user, self.format_date(date))
+            self.c.execute(query, values)
+            self.con.commit()
+
+        def update_concert(self, user, title, date, place, original_date):
+            query = "UPDATE concerts SET user=?,title=?,date=?,place=? WHERE user=? AND date=?"
+            # Tupla con los valores a insertar
+            values = (user, title, self.format_date(date), place, user, self.format_date(original_date))
+            self.c.execute(query, values)
+            self.con.commit()
+
+        def get_concert(self, user, date) -> Concert:
+            query = "SELECT * FROM concerts WHERE user = ? AND date = ?"
+            self.c.execute(query, (user, self.format_date(date)))
             result = self.c.fetchone()
 
-        # ------------------------------------------------ TABLA USUARIOS ----------------------------------------------
+            if result is not None:
+                return Concert(result[0], result[1], result[2], result[3])
+
+        def get_user_concerts(self, user: str):
+            query = "SELECT * FROM concerts WHERE user = ?"
+            self.c.execute(query, (user,))
+            result = self.c.fetchall()
+            concerts = []
+            for row in result:
+                concerts.append(Concert(row[0], row[1], row[2], row[3]))
+            return concerts
+
+        # -------------------------------------- TABLA CONCERTS_SHEETS -------------------------------------------------
+        def get_all_concertsheets(self, concert_user, concert_date):
+            query = "SELECT * FROM concerts_sheets WHERE concert_user = ? AND concert_date = ?"
+            self.c.execute(query, (concert_user, concert_date))
+            result = self.c.fetchall()
+            sheets = []
+            for row in result:
+                sheets.append(self.get_partitura(row[2]))
+            return sheets
+
+        def insertar_concertsheets(self, concert_user, concert_date, sheet):
+            query = "INSERT INTO concerts_sheets (concert_user, concert_date, sheet) VALUES (?, ?, ?)"
+            values = (concert_user, concert_date, sheet)
+            self.c.execute(query, values)
+            self.con.commit()
+
+        def delete_concertsheets(self, concert_user, concert_date, sheet):
+            query = "DELETE FROM concerts_sheets WHERE concert_user=? AND concert_date=? AND sheet=?"
+            values = (concert_user,concert_date, sheet)
+            self.c.execute(query, values)
+            self.con.commit()
+
+        # ----------------------------------------- TABLA USUARIOS -----------------------------------------------------
         def insertar_usuario(self, user: str, token: bytes, salt: bytes) -> None:
             # Ahora insertamos elementos
             if not self.consultar_registro(user):

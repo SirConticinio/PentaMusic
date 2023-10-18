@@ -29,6 +29,18 @@ class MenuManager:
             from pentamusic.menus.sheet_public_menu import SheetPublicWindow
             SheetPublicWindow()
 
+        def open_concert_menu(self, show_old):
+            from pentamusic.menus.concerts_menu import ConcertWindow
+            ConcertWindow(show_old)
+
+        def open_concert_edit_menu(self, user, date):
+            from pentamusic.menus.concerts_edit_menu import ConcertEditWindow
+            ConcertEditWindow(user, date)
+
+        def open_concert_sheets_menu(self, user, date):
+            from pentamusic.menus.concert_sheet_menu import ConcertSheetWindow
+            ConcertSheetWindow(user, date)
+
 
     # Usamos un singleton
     instance = None

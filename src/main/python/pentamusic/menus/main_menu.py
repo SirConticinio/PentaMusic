@@ -35,8 +35,7 @@ class MainWindow(Menu):
         self.manager.open_init_menu()
 
     def clicked_partituras(self):
-        SheetWindow()
+        self.manager.open_sheet_menu()
 
     def clicked_conciertos(self):
-        # todo
-        pass
+        self.manager.open_concert_menu(False)

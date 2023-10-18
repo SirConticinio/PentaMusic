@@ -23,7 +23,7 @@ class UserSheetEditWindow(Menu):
 
         commentLabel = QLabel("Comentarios de la partitura:")
         self.comments = QLineEdit()
-        self.comments.setText(user_sheet.comments)
+        self.comments.setText(user_sheet.sheet.title)
         learnedLabel = QLabel("Compás aprendido:")
         self.learned_bar = QLineEdit()
         self.learned_bar.setText(str(user_sheet.learned_bar))
@@ -54,8 +54,11 @@ class UserSheetEditWindow(Menu):
 
     def clicked_confirmar(self):
         # aquí volvemos a guardar la partitura
-        self.datos.actualizar_usersheet(self.sheet_id, self.session.user, self.comments.text(), self.learned_bar.text())
+        self.actualizar_partitura()
         self.manager.open_sheet_menu()
+
+    def actualizar_partitura(self):
+        self.datos.actualizar_usersheet(self.sheet_id, self.session.user, self.comments.text(), self.learned_bar.text())
 
     def clicked_delete(self):
         # aquí borramos la partitura si hace falta
@@ -69,4 +72,5 @@ class UserSheetEditWindow(Menu):
         self.manager.open_sheet_menu()
 
     def clicked_edit(self):
+        self.actualizar_partitura()
         self.manager.open_sheet_edit_menu(self.sheet_id)

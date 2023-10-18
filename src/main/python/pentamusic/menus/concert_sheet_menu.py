@@ -14,11 +14,13 @@ from pentamusic.basedatos.session import Session
 from pentamusic.menus.sheet_edit_menu import SheetEditWindow
 
 
-class SheetPublicWindow(Menu):
-    def __init__(self):
+class ConcertSheetWindow(Menu):
+    def __init__(self, user, date):
         super().__init__()
+        self.user = user
+        self.date = date
 
-        welcome = QLabel("Aquí están las partituras públicas:")
+        welcome = QLabel("Aquí están tus partituras:")
 
         group = QWidget()
         groupLayout = QVBoxLayout()
@@ -33,24 +35,25 @@ class SheetPublicWindow(Menu):
         scroll.setMinimumSize(500, 200)
 
         layout = QVBoxLayout()
-        self.add_back_button(layout, lambda: self.manager.open_sheet_menu())
+        self.add_back_button(layout, lambda: self.manager.open_concert_edit_menu(user, date))
         layout.addWidget(welcome)
         layout.addWidget(scroll)
         self.set_layout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
-        public_sheets = self.datos.get_partituras_publicas()
-        my_sheets = self.datos.get_all_usersheets(self.session.user)
-        for sheet in public_sheets:
-            row = QWidget()
-            layout = QHBoxLayout()
+        added_sheets = self.datos.get_all_concertsheets(self.user, self.date)
 
-            if not self.find_partitura(my_sheets, sheet.sheet_id):
+        my_sheets = self.datos.get_all_usersheets(self.session.user)
+        for sheet in my_sheets:
+            # la añadimos solo si no está ya programada en el concierto
+            if not self.find_partitura(added_sheets, sheet.sheet.sheet_id):
+                row = QWidget()
+                layout = QHBoxLayout()
                 imp = QPushButton("Importar")
                 imp.setFixedWidth(80)
-                sheet_id = sheet.sheet_id
+                sheet_id = sheet.sheet.sheet_id
                 imp.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_import(sid))
-                view = QPushButton(sheet.title)
+                view = QPushButton(sheet.sheet.title)
                 view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
                 layout.addWidget(imp)
                 layout.addWidget(view)
@@ -58,15 +61,15 @@ class SheetPublicWindow(Menu):
                 group.addWidget(row)
 
     def find_partitura(self, my_sheets, sheet_id):
-        for user_sheet in my_sheets:
-            if user_sheet.sheet.sheet_id == sheet_id:
+        for sheet in my_sheets:
+            if sheet.sheet_id == sheet_id:
                 return True
         return False
 
     def clicked_import(self, sheet_id):
-        self.datos.insertar_usersheet(self.session.user, sheet_id)
+        self.datos.insertar_concertsheets(self.user, self.date, sheet_id)
         print("Partitura importada.")
-        self.manager.open_sheet_public_menu()
+        self.manager.open_concert_sheets_menu(self.user, self.date)
 
     def clicked_open(self, sheet_id):
         path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
