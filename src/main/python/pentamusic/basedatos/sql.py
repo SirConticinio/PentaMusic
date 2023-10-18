@@ -4,8 +4,10 @@ import sqlite3
 import shutil
 
 from pentamusic.basedatos.concert import Concert
+from pentamusic.basedatos.session import Session
 from pentamusic.basedatos.sheet import Sheet
 from pentamusic.basedatos.user_sheet import UserSheet
+from pentamusic.crypto import Crypto
 
 
 class SQL:
@@ -52,7 +54,9 @@ class SQL:
                                                             user TEXT,
                                                             sheet TEXT,
                                                             comments TEXT,
+                                                            comments_nonce BLOB,
                                                             learned_bar NUMERIC,
+                                                            learned_bar_nonce BLOB,
                                                             PRIMARY KEY (user, sheet),
                                                             FOREIGN KEY (user) REFERENCES accounts(user_id),
                                                             FOREIGN KEY (sheet) REFERENCES sheets(id)
@@ -65,14 +69,6 @@ class SQL:
                                                             FOREIGN KEY (concert_user, concert_date) REFERENCES concerts(user, date) ON UPDATE CASCADE,
                                                             FOREIGN KEY (sheet) REFERENCES sheets(id)
                                         )""")
-            # antes de insertar una partitura, creamos una asociación con el usuario actual
-            self.c.execute("""CREATE TRIGGER IF NOT EXISTS insert_sheets
-                                                        AFTER INSERT ON sheets
-                                                        FOR EACH ROW
-                                                        BEGIN
-                                                            INSERT INTO accounts_sheets VALUES (NEW.owner, NEW.id, NULL, 0);
-                                                        END;
-                                        """)
             # antes de borrar una partitura, borramos todas sus asociaciones con los usuarios
             self.c.execute("""CREATE TRIGGER IF NOT EXISTS delete_sheets
                                                         BEFORE DELETE ON sheets
@@ -98,6 +94,7 @@ class SQL:
             values = (id, nombre_partitura, nombre_creador, publica, instrumento, compositor)
             self.c.execute(query, values)
             self.con.commit()
+            self.insertar_usersheet(Session().user, id)
 
         def delete_partitura(self, sheet_id):
             query = "DELETE FROM sheets WHERE id=?"
@@ -137,7 +134,9 @@ class SQL:
             self.c.execute(query, (user, sheet_id))
             result = self.c.fetchone()
             if result is not None:
-                return UserSheet(result[0], self.get_partitura(result[1]), result[2], result[3])
+                decrypted_comments = Crypto().decrypt_data(result[2], result[3])
+                decrypted_learned_bar = Crypto().decrypt_data(result[4], result[5])
+                return UserSheet(result[0], self.get_partitura(result[1]), decrypted_comments, decrypted_learned_bar, result[3], result[5])
 
         def get_all_usersheets(self, owner: str):
             query = "SELECT * FROM accounts_sheets WHERE user = ?"
@@ -145,18 +144,22 @@ class SQL:
             result = self.c.fetchall()
             sheets = []
             for row in result:
-                sheets.append(UserSheet(row[0], self.get_partitura(row[1]), row[2], row[3]))
+                decrypted_comments = Crypto().decrypt_data(row[2], row[3])
+                decrypted_learned_bar = Crypto().decrypt_data(row[4], row[5])
+                sheets.append(UserSheet(row[0], self.get_partitura(row[1]), decrypted_comments, decrypted_learned_bar, row[3], row[5]))
             return sheets
 
         def insertar_usersheet(self, user_id, sheet_id):
-            query = "INSERT INTO accounts_sheets (user, sheet, comments, learned_bar) VALUES (?, ?, ?, 0)"
-            values = (user_id, sheet_id, None)
+            query = "INSERT INTO accounts_sheets (user, sheet, comments, learned_bar, comments_nonce, learned_bar_nonce) VALUES (?, ?, ?, ?, ?, ?)"
+            comments_nonce = os.urandom(12)
+            learned_bar_nonce = os.urandom(12)
+            values = (user_id, sheet_id, Crypto().encrypt_data("", comments_nonce), Crypto().encrypt_data(0, learned_bar_nonce), comments_nonce, learned_bar_nonce)
             self.c.execute(query, values)
             self.con.commit()
 
-        def actualizar_usersheet(self, sheet_id, user, comments, learned_bar: int):
-            query = "UPDATE accounts_sheets SET sheet=?,user=?,comments=?,learned_bar=? WHERE sheet=? AND user=?"
-            values = (sheet_id, user, comments, learned_bar, sheet_id, user)
+        def actualizar_usersheet(self, sheet_id, user, comments, learned_bar: int, comments_nonce, learned_bar_nonce):
+            query = "UPDATE accounts_sheets SET sheet=?,user=?,comments=?,learned_bar=?,comments_nonce=?,learned_bar_nonce=? WHERE sheet=? AND user=?"
+            values = (sheet_id, user, Crypto().encrypt_data(comments, comments_nonce), Crypto().encrypt_data(learned_bar, learned_bar_nonce), comments_nonce, learned_bar_nonce, sheet_id, user)
             self.c.execute(query, values)
             self.con.commit()
 

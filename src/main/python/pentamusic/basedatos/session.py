@@ -2,10 +2,9 @@
 class Session():
 
     class __Session:
-        def __init__(self, usuario: str, password: str, master_key: str):
+        def __init__(self, usuario: str, key: str):
             self.user = usuario
-            self.pwd = password
-            self.key = master_key
+            self.key = key
 
     # Usamos un singleton
     instance = None
@@ -14,8 +13,8 @@ class Session():
         return Session.instance
 
     @staticmethod
-    def set_session(usuario, password, key):
-        Session.instance = Session.__Session(usuario, password, key)
+    def set_session(usuario, key):
+        Session.instance = Session.__Session(usuario, key)
         return Session.instance
 
     @staticmethod
