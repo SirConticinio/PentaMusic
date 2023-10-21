@@ -228,10 +228,17 @@ class SQL:
             return concerts
 
         # -------------------------------------- TABLA CONCERTS_SHEETS -------------------------------------------------
-        def get_all_concertsheets(self, concert_user, concert_date):
+        # Obtenemos los conciertos de un determinado usuario
+        def get_all_concertsheets(self, concert_user, concert_date) -> list:
+            # Consulat de la tabla concerts_sheets
             query = "SELECT * FROM concerts_sheets WHERE concert_user = ? AND concert_date = ?"
+            # Ejecucion de consulta con los valores
             self.c.execute(query, (concert_user, concert_date))
+
+            # Obtenemos el resultado
             result = self.c.fetchall()
+
+            # Pasamos a lista las partituras que pertenecen al concierto
             sheets = []
             for row in result:
                 sheets.append(self.get_partitura(row[2]))
@@ -243,7 +250,7 @@ class SQL:
             self.c.execute(query, values)
             self.con.commit()
 
-        def delete_concertsheets(self, concert_user, concert_date, sheet):
+        def delete_concertsheets(self, concert_user, concert_date, sheet) -> None:
             query = "DELETE FROM concerts_sheets WHERE concert_user=? AND concert_date=? AND sheet=?"
             values = (concert_user,concert_date, sheet)
             self.c.execute(query, values)
@@ -267,8 +274,11 @@ class SQL:
                 # En caso de que ya exista, salta una excepcion
                 raise Exception("El usuario ya existe.")
 
-        def consultar_registro(self, user):
+        # Busqueda de usuarios
+        def consultar_registro(self, user: str) -> bool:
+            # Consulta de busqueda
             query = "SELECT * FROM accounts WHERE user_id = ?"
+            # Ejecucion de consulta
             self.c.execute(query, (user,))
 
             # Recuperamos los resultados de la consulta
@@ -280,7 +290,7 @@ class SQL:
             else:
                 return True
 
-        def consultar_dato_usuario(self, user, data_index) -> bytes:
+        def consultar_dato_usuario(self, user: str, data_index) -> bytes:
             query = "SELECT * FROM accounts WHERE user_id = ?"
             self.c.execute(query, (user,))
 
