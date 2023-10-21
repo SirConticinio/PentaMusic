@@ -24,15 +24,19 @@ class SQL:
                 os.makedirs(self.basepath)
             self.con = sqlite3.connect(self.basepath + "/penta.db", detect_types = sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
 
-            # Esto lo usaremos para poder ejecutar comandos SQL
+            # Usado para poder ejecutar comandos sql
             self.c = self.con.cursor()
 
-            # Creamos nuestra base de datos
+            # ============================================= Base de Datos =============================================
+
+            # Tabla que almacena las cuentas de los usuarios
             self.c.execute("""CREATE TABLE IF NOT EXISTS accounts (
                                             user_id TEXT PRIMARY KEY,
                                             user_pwd BLOB NOT NULL,
                                             salt BLOB NOT NULL
                         )""")
+
+            # Tabla que almacena los conciertos de cada usuario
             self.c.execute("""CREATE TABLE IF NOT EXISTS concerts (
                                             user TEXT,
                                             title TEXT NOT NULL,
@@ -41,6 +45,8 @@ class SQL:
                                             PRIMARY KEY (user, date),
                                             FOREIGN KEY (user) REFERENCES accounts(user_id)
                         )""")
+
+            # Tabla que almacena las partituras de los usuarios
             self.c.execute("""CREATE TABLE IF NOT EXISTS sheets (
                                             id TEXT PRIMARY KEY,
                                             title TEXT NOT NULL,
@@ -50,6 +56,8 @@ class SQL:
                                             composer TEXT,
                                             CONSTRAINT CK_sheet_public CHECK (public IN (0, 1))
                         )""")
+
+            # Tabla que relaciona cada partitura con su correspondiente usuario
             self.c.execute("""CREATE TABLE IF NOT EXISTS accounts_sheets (
                                                             user TEXT,
                                                             sheet TEXT,
@@ -61,6 +69,8 @@ class SQL:
                                                             FOREIGN KEY (user) REFERENCES accounts(user_id),
                                                             FOREIGN KEY (sheet) REFERENCES sheets(id)
                                         )""")
+
+            # Tabla que relaciona los conciertos con las partituras.
             self.c.execute("""CREATE TABLE IF NOT EXISTS concerts_sheets (
                                                             concert_user TEXT,
                                                             concert_date TIMESTAMP,
@@ -69,7 +79,8 @@ class SQL:
                                                             FOREIGN KEY (concert_user, concert_date) REFERENCES concerts(user, date) ON UPDATE CASCADE,
                                                             FOREIGN KEY (sheet) REFERENCES sheets(id)
                                         )""")
-            # antes de borrar una partitura, borramos todas sus asociaciones con los usuarios
+
+            # Disparador que provoca que antes de borrar una partitura, borra todas sus asociaciones con los usuarios
             self.c.execute("""CREATE TRIGGER IF NOT EXISTS delete_sheets
                                                         BEFORE DELETE ON sheets
                                                         FOR EACH ROW
@@ -86,6 +97,7 @@ class SQL:
                                                         END;
                                         """)
 
+            # Vista que muestra las partituras que han sido indicadas como publicas
             self.c.execute("""CREATE VIEW IF NOT EXISTS public_sheets AS SELECT * FROM sheets WHERE public = 1""")
 
         # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
@@ -238,15 +250,21 @@ class SQL:
             self.con.commit()
 
         # ----------------------------------------- TABLA USUARIOS -----------------------------------------------------
+
+        # Funcion que inserta en la tabla usuarios
         def insertar_usuario(self, user: str, token: bytes, salt: bytes) -> None:
-            # Ahora insertamos elementos
+            # Primero buscamos si ya ha sido registrado
             if not self.consultar_registro(user):
+                # Insertamos
                 query = "INSERT INTO accounts (user_id, user_pwd, salt) VALUES (?, ?, ?)"
                 # Tupla con los valores a insertar
                 values = (user, token, salt)
+                # Ejecutamos
                 self.c.execute(query, values)
+                # Guardamos los cambios
                 self.con.commit()
             else:
+                # En caso de que ya exista, salta una excepcion
                 raise Exception("El usuario ya existe.")
 
         def consultar_registro(self, user):
@@ -277,14 +295,16 @@ class SQL:
 
 
         # ------------------------------------------------ GENERAL ----------------------------------------------
-        # Se usa para cerrar la base de datos
+
+        # Permite cerrar la base de datos
         def cerrar(self):
             # Guardamos los cambios hechos
             self.con.commit()
 
-            # Cerramos la conexión a la base de datos. Buena práctica
+            # Cerramos la conexión a la base de datos
             self.con.close()
 
+        # Funcion que permite resetear la base de datos.
         def reset(self):
             # cerramos la conexión
             self.cerrar()
@@ -294,7 +314,7 @@ class SQL:
             # y recreamos la base de datos
             self.initialize()
 
-    # Usamos un singleton
+    # Singleton para tener una única instancia de esta clase
     instance = None
 
     def __new__(cls):
