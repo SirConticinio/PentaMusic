@@ -56,11 +56,16 @@ class SheetWindow(Menu):
             edit.setFixedWidth(80)
             sheet_id = user_sheet.sheet.sheet_id
             edit.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_edit(sid))
+
+            learned = int(user_sheet.learned_bar) if user_sheet.learned_bar != "" else 0
+            porcentaje = str(round((learned/user_sheet.sheet.bars)*100, 2)) + "%" if user_sheet.sheet.bars > 0 else "?%"
+            compositor = user_sheet.sheet.composer if user_sheet.sheet.composer != "" else "<Sin especificar>"
+            instrumentos = user_sheet.sheet.instrument if user_sheet.sheet.instrument != "" else "<Sin especificar>"
             sheet_info = user_sheet.sheet.title
-            sheet_info += "\nCompositor: " + user_sheet.sheet.composer
-            sheet_info += "\nInstrumentos: " + user_sheet.sheet.instrument
-            sheet_info += "\n\nCompás aprendido: " + str(user_sheet.learned_bar)
-            sheet_info += "\nComentarios: " + (user_sheet.comments if user_sheet.comments is not None else "-")
+            sheet_info += "\nCompositor: " + compositor
+            sheet_info += "\nInstrumentos: " + instrumentos
+            sheet_info += "\n\nPorcentaje aprendido: " + porcentaje
+            sheet_info += "\nComentarios: " + (user_sheet.comments if user_sheet.comments != "" else "[...]")
             view = QPushButton(sheet_info)
             view.setStyleSheet("text-align:left; padding:8px")
             view.clicked.connect(lambda c=False, sid=user_sheet.sheet: self.clicked_open(sid))

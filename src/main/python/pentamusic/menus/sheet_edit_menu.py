@@ -4,6 +4,7 @@ import shutil
 import uuid
 
 from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QScrollArea, QFileDialog, \
     QCheckBox
 from pentamusic.basedatos.sql import SQL
@@ -30,6 +31,10 @@ class SheetEditWindow(Menu):
         instrumentLabel = QLabel("Instrumento:")
         self.instrument = QLineEdit()
         self.instrument.setText(sheet.instrument)
+        barsLabel = QLabel("Número de compases:")
+        self.bars = QLineEdit()
+        self.bars.setText(str(sheet.bars))
+        self.bars.setValidator(QIntValidator())
         self.public = QCheckBox("¿Es pública?")
         self.public.setChecked(sheet.is_public)
 
@@ -44,6 +49,8 @@ class SheetEditWindow(Menu):
         layout.addWidget(self.composer)
         layout.addWidget(instrumentLabel)
         layout.addWidget(self.instrument)
+        layout.addWidget(barsLabel)
+        layout.addWidget(self.bars)
         layout.addWidget(self.public)
         layout.addWidget(confirmar)
 
@@ -53,7 +60,7 @@ class SheetEditWindow(Menu):
         # aquí volvemos a guardar la partitura
         is_public_now = 0 if self.public.checkState() == 0 else 1
         self.datos.update_sheet(self.sheet_id, self.title.text(), self.owner, is_public_now, self.sheet.file_nonce, self.composer.text(),
-                                self.instrument.text())
+                                self.instrument.text(), self.bars.text())
 
         # encriptamos / desencriptamos si cambia el estado de la partitura
         should_encrypt = (not is_public_now) and self.sheet.is_public

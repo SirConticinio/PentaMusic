@@ -77,7 +77,7 @@ class Menu:
                 self.datos.insert_sheet(my_id, originalname, self.session.user, False, file_nonce, "", "")
             else:
                 sheet = self.datos.get_sheet(my_id)
-                self.datos.update_sheet(my_id, sheet.title, sheet.owner, sheet.is_public, file_nonce, sheet.composer, sheet.instrument)
+                self.datos.update_sheet(my_id, sheet.title, sheet.owner, sheet.is_public, file_nonce, sheet.composer, sheet.instrument, sheet.bars)
         except Exception as e:
             OkDialog("Hubo un error al guardar el archivo:\n" + str(e))
 

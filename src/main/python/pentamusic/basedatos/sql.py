@@ -56,16 +56,18 @@ class SQL:
                                             instrument TEXT, 
                                             composer TEXT,
                                             file_nonce BLOB,
-                                            CONSTRAINT CK_sheet_public CHECK (public IN (0, 1))
+                                            bars NUMERIC,
+                                            CONSTRAINT CK_sheet_public CHECK (public IN (0, 1)),
+                                            CONSTRAINT CK_sheet_bars CHECK (bars >= 0)
                         )""")
 
             # Tabla que relaciona cada partitura con su correspondiente usuario
             self.c.execute("""CREATE TABLE IF NOT EXISTS accounts_sheets (
                                                             user TEXT,
                                                             sheet TEXT,
-                                                            comments TEXT,
+                                                            comments BLOB,
                                                             comments_nonce BLOB,
-                                                            learned_bar NUMERIC,
+                                                            learned_bar BLOB,
                                                             learned_bar_nonce BLOB,
                                                             PRIMARY KEY (user, sheet),
                                                             FOREIGN KEY (user) REFERENCES accounts(user_id),
@@ -103,9 +105,9 @@ class SQL:
             self.c.execute("""CREATE VIEW IF NOT EXISTS public_sheets AS SELECT * FROM sheets WHERE public = 1""")
 
         # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
-        def insert_sheet(self, id, nombre_partitura, nombre_creador, publica, file_nonce, compositor=None, instrumento=None):
-            query = "INSERT INTO sheets (id, title, owner, public, composer, instrument, file_nonce) VALUES (?, ?, ?, ?, ?, ?, ?)"
-            values = (id, nombre_partitura, nombre_creador, publica, instrumento, compositor, file_nonce)
+        def insert_sheet(self, id, nombre_partitura, nombre_creador, publica, file_nonce, compositor=None, instrumento=None, bars=0):
+            query = "INSERT INTO sheets (id, title, owner, public, composer, instrument, file_nonce, bars) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            values = (id, nombre_partitura, nombre_creador, publica, instrumento, compositor, file_nonce, bars)
             self.c.execute(query, values)
             self.con.commit()
             self.insert_usersheet(Session().user, id)
@@ -117,9 +119,9 @@ class SQL:
             self.con.commit()
             os.remove(self.basepath + "/Sheets/" + sheet_id + ".pdf")
 
-        def update_sheet(self, id, nombre_partitura, nombre_creador, publica, file_nonce, compositor, instrumento):
-            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=?,file_nonce=? WHERE id=?"
-            values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, file_nonce, id)
+        def update_sheet(self, id, nombre_partitura, nombre_creador, publica, file_nonce, compositor, instrumento, bars):
+            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=?,file_nonce=?,bars=? WHERE id=?"
+            values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, file_nonce, bars, id)
             self.c.execute(query, values)
             self.con.commit()
 
@@ -130,7 +132,7 @@ class SQL:
 
             sheets = []
             for row in result:
-                sheets.append(Sheet(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+                sheets.append(Sheet(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
             return sheets
 
         def get_sheet(self, id: str) -> Sheet:
@@ -140,7 +142,7 @@ class SQL:
             result = self.c.fetchone()
 
             if result is not None:
-                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5], result[6])
+                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7])
 
         # ------------------------------------------- TABLA ACCOUNTS_SHEET ---------------------------------------------
         def get_usersheet(self, user: str, sheet_id: str) -> UserSheet:
