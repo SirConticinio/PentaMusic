@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 
 from PyQt5.QtCore import QSize, Qt
@@ -12,6 +13,7 @@ from pentamusic.basedatos.sql import SQL
 from .menu import Menu
 from pentamusic.basedatos.session import Session
 from pentamusic.menus.sheet_edit_menu import SheetEditWindow
+from ..crypto import Crypto
 
 
 class SheetWindow(Menu):
@@ -61,7 +63,7 @@ class SheetWindow(Menu):
             sheet_info += "\nComentarios: " + (user_sheet.comments if user_sheet.comments is not None else "-")
             view = QPushButton(sheet_info)
             view.setStyleSheet("text-align:left; padding:8px")
-            view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
+            view.clicked.connect(lambda c=False, sid=user_sheet.sheet: self.clicked_open(sid))
             layout.addWidget(edit)
             layout.addWidget(view)
             row.setLayout(layout)
@@ -74,27 +76,10 @@ class SheetWindow(Menu):
         file, _ = QFileDialog.getOpenFileName(arch, "Elige un archivo de partitura", "", "PDF (*.pdf);;PNG (*.png);;All Files (*);;")
         if file:
             print(file)
-            self.save_sheet(file)
+            self.save_sheet(file, True, False, True, "")
 
     def clicked_edit(self, sheet_id):
         self.manager.open_usersheet_edit_menu(sheet_id)
 
-    def clicked_open(self, sheet_id):
-        path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
-        self.open_file(path)
-
-    def save_sheet(self, filename):
-        home = os.path.expanduser("~/PentaMusic/Sheets")
-        if not os.path.exists(home):
-            os.makedirs(home)
-
-        # aqui lo guardamos con un nombre random, pero en la base de datos se guarda el original
-        originalname = os.path.basename(filename).removesuffix(".pdf")
-        newname = str(uuid.uuid4())
-        path = home + "/" + newname + ".pdf"
-        shutil.copy2(filename, path)
-
-        self.datos.insertar_partituras(newname, originalname, self.session.user, False, "", "")
-
-        # y ahora abrimos el menú de edición
-        self.manager.open_usersheet_edit_menu(newname)
+    def clicked_open(self, sheet):
+        self.open_sheet(sheet)

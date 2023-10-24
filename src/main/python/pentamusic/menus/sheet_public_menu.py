@@ -39,7 +39,7 @@ class SheetPublicWindow(Menu):
         self.set_layout(layout)
 
     def set_partituras(self, group: QVBoxLayout):
-        public_sheets = self.datos.get_partituras_publicas()
+        public_sheets = self.datos.get_public_sheet()
         my_sheets = self.datos.get_all_usersheets(self.session.user)
         for sheet in public_sheets:
             row = QWidget()
@@ -51,7 +51,7 @@ class SheetPublicWindow(Menu):
                 sheet_id = sheet.sheet_id
                 imp.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_import(sid))
                 view = QPushButton(sheet.title)
-                view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
+                view.clicked.connect(lambda c=False, sid=sheet: self.clicked_open(sid))
                 layout.addWidget(imp)
                 layout.addWidget(view)
                 row.setLayout(layout)
@@ -64,10 +64,9 @@ class SheetPublicWindow(Menu):
         return False
 
     def clicked_import(self, sheet_id):
-        self.datos.insertar_usersheet(self.session.user, sheet_id)
+        self.datos.insert_usersheet(self.session.user, sheet_id)
         print("Partitura importada.")
         self.manager.open_sheet_public_menu()
 
-    def clicked_open(self, sheet_id):
-        path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
-        self.open_file(path)
+    def clicked_open(self, sheet):
+        self.open_sheet(sheet)

@@ -69,5 +69,5 @@ class ConcertWindow(Menu):
 
     def clicked_crear(self, user):
         date = datetime.datetime.now()
-        self.datos.insertar_concerts(user, "", date, "")
+        self.datos.insert_concerts(user, "", date, "")
         self.manager.open_concert_edit_menu(user, date)

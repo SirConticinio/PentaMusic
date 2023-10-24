@@ -37,7 +37,6 @@ class LoginWindow(Menu):
     def confirm(self):
         user = self.usuarioBox.text()
         password = self.contraseñaBox.text()
-        print("User is ", user, ", password is ", password)
 
         if self.isLogin:
             print("Logueando!")

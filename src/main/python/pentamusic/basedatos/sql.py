@@ -22,7 +22,7 @@ class SQL:
             if not os.path.exists(self.basepath):
                 print("Creada carpeta del programa.")
                 os.makedirs(self.basepath)
-            self.con = sqlite3.connect(self.basepath + "/penta.db", detect_types = sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+            self.con = sqlite3.connect(self.basepath + "/penta.db", detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
 
             # Usado para poder ejecutar comandos sql
             self.c = self.con.cursor()
@@ -55,6 +55,7 @@ class SQL:
                                             public NUMERIC,
                                             instrument TEXT, 
                                             composer TEXT,
+                                            file_nonce BLOB,
                                             CONSTRAINT CK_sheet_public CHECK (public IN (0, 1))
                         )""")
 
@@ -102,44 +103,44 @@ class SQL:
             self.c.execute("""CREATE VIEW IF NOT EXISTS public_sheets AS SELECT * FROM sheets WHERE public = 1""")
 
         # -------------------------------------------- TABLA PARTITURAS ------------------------------------------------
-        def insertar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor=None, instrumento=None):
-            query = "INSERT INTO sheets (id, title, owner, public, composer, instrument) VALUES (?, ?, ?, ?, ?, ?)"
-            values = (id, nombre_partitura, nombre_creador, publica, instrumento, compositor)
+        def insert_sheet(self, id, nombre_partitura, nombre_creador, publica, file_nonce, compositor=None, instrumento=None):
+            query = "INSERT INTO sheets (id, title, owner, public, composer, instrument, file_nonce) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            values = (id, nombre_partitura, nombre_creador, publica, instrumento, compositor, file_nonce)
             self.c.execute(query, values)
             self.con.commit()
-            self.insertar_usersheet(Session().user, id)
+            self.insert_usersheet(Session().user, id)
 
-        def delete_partitura(self, sheet_id):
+        def delete_sheet(self, sheet_id):
             query = "DELETE FROM sheets WHERE id=?"
             values = (sheet_id,)
             self.c.execute(query, values)
             self.con.commit()
             os.remove(self.basepath + "/Sheets/" + sheet_id + ".pdf")
 
-        def actualizar_partituras(self, id, nombre_partitura, nombre_creador, publica, compositor, instrumento):
-            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=? WHERE id=?"
-            values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, id)
+        def update_sheet(self, id, nombre_partitura, nombre_creador, publica, file_nonce, compositor, instrumento):
+            query = "UPDATE sheets SET title=?,owner=?,public=?,composer=?,instrument=?,file_nonce=? WHERE id=?"
+            values = (nombre_partitura, nombre_creador, publica, compositor, instrumento, file_nonce, id)
             self.c.execute(query, values)
             self.con.commit()
 
-        def get_partituras_publicas(self):
+        def get_public_sheet(self):
             query = "SELECT * FROM sheets WHERE public = 1"
             self.c.execute(query)
             result = self.c.fetchall()
 
             sheets = []
             for row in result:
-                sheets.append(Sheet(row[0], row[1], row[2], row[3], row[4], row[5]))
+                sheets.append(Sheet(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
             return sheets
 
-        def get_partitura(self, id: str) -> Sheet:
+        def get_sheet(self, id: str) -> Sheet:
             query = "SELECT * FROM sheets WHERE id = ?"
             self.c.execute(query, (id,))
 
             result = self.c.fetchone()
 
             if result is not None:
-                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5])
+                return Sheet(result[0], result[1], result[2], result[3], result[4], result[5], result[6])
 
         # ------------------------------------------- TABLA ACCOUNTS_SHEET ---------------------------------------------
         def get_usersheet(self, user: str, sheet_id: str) -> UserSheet:
@@ -149,7 +150,7 @@ class SQL:
             if result is not None:
                 decrypted_comments = Crypto().decrypt_data(result[2], result[3])
                 decrypted_learned_bar = Crypto().decrypt_data(result[4], result[5])
-                return UserSheet(result[0], self.get_partitura(result[1]), decrypted_comments, decrypted_learned_bar, result[3], result[5])
+                return UserSheet(result[0], self.get_sheet(result[1]), decrypted_comments, decrypted_learned_bar, result[3], result[5])
 
         def get_all_usersheets(self, owner: str):
             query = "SELECT * FROM accounts_sheets WHERE user = ?"
@@ -157,12 +158,15 @@ class SQL:
             result = self.c.fetchall()
             sheets = []
             for row in result:
-                decrypted_comments = Crypto().decrypt_data(row[2], row[3])
-                decrypted_learned_bar = Crypto().decrypt_data(row[4], row[5])
-                sheets.append(UserSheet(row[0], self.get_partitura(row[1]), decrypted_comments, decrypted_learned_bar, row[3], row[5]))
+                sheet = self.get_sheet(row[1])
+                # las partituras solo se devuelven si son públicas o eres el dueño, si no estarán encriptadas y no se podrán ver
+                if sheet.is_public == 1 or sheet.owner == owner:
+                    decrypted_comments = Crypto().decrypt_data(row[2], row[3])
+                    decrypted_learned_bar = Crypto().decrypt_data(row[4], row[5])
+                    sheets.append(UserSheet(row[0], sheet, decrypted_comments, decrypted_learned_bar, row[3], row[5]))
             return sheets
 
-        def insertar_usersheet(self, user_id, sheet_id):
+        def insert_usersheet(self, user_id, sheet_id):
             query = "INSERT INTO accounts_sheets (user, sheet, comments, learned_bar, comments_nonce, learned_bar_nonce) VALUES (?, ?, ?, ?, ?, ?)"
             comments_nonce = os.urandom(12)
             learned_bar_nonce = os.urandom(12)
@@ -170,7 +174,7 @@ class SQL:
             self.c.execute(query, values)
             self.con.commit()
 
-        def actualizar_usersheet(self, sheet_id, user, comments, learned_bar: int, comments_nonce, learned_bar_nonce):
+        def update_usersheet(self, sheet_id, user, comments, learned_bar: int, comments_nonce, learned_bar_nonce):
             query = "UPDATE accounts_sheets SET sheet=?,user=?,comments=?,learned_bar=?,comments_nonce=?,learned_bar_nonce=? WHERE sheet=? AND user=?"
             values = (sheet_id, user, Crypto().encrypt_data(comments, comments_nonce), Crypto().encrypt_data(learned_bar, learned_bar_nonce), comments_nonce, learned_bar_nonce, sheet_id, user)
             self.c.execute(query, values)
@@ -182,12 +186,12 @@ class SQL:
             self.c.execute(query, values)
             self.con.commit()
             # si es el dueño de la partitura, entonces también borramos la partitura
-            sheet = self.get_partitura(sheet_id)
+            sheet = self.get_sheet(sheet_id)
             if sheet.owner == user:
-                self.delete_partitura(sheet_id)
+                self.delete_sheet(sheet_id)
 
         # -------------------------------------------- TABLA CONCIERTO -------------------------------------------------
-        def insertar_concerts(self, user, title, date, place):
+        def insert_concerts(self, user, title, date, place):
             query = "INSERT INTO concerts (user, title, date, place) VALUES (?, ?, ?, ?)"
             # Tupla con los valores a insertar
             values = (user, title, self.format_date(date), place)
@@ -242,10 +246,10 @@ class SQL:
             # Pasamos a lista las partituras que pertenecen al concierto
             sheets = []
             for row in result:
-                sheets.append(self.get_partitura(row[2]))
+                sheets.append(self.get_sheet(row[2]))
             return sheets
 
-        def insertar_concertsheets(self, concert_user, concert_date, sheet):
+        def insert_concertsheets(self, concert_user, concert_date, sheet):
             query = "INSERT INTO concerts_sheets (concert_user, concert_date, sheet) VALUES (?, ?, ?)"
             values = (concert_user, concert_date, sheet)
             self.c.execute(query, values)
@@ -260,9 +264,9 @@ class SQL:
         # ----------------------------------------- TABLA USUARIOS -----------------------------------------------------
 
         # Funcion que inserta en la tabla usuarios
-        def insertar_usuario(self, user: str, token: bytes, salt: bytes, salt_for_encryption: bytes) -> None:
+        def insert_user(self, user: str, token: bytes, salt: bytes, salt_for_encryption: bytes) -> None:
             # Primero buscamos si ya ha sido registrado
-            if not self.consultar_registro(user):
+            if not self.get_registration(user):
                 # Insertamos
                 query = "INSERT INTO accounts (user_id, user_pwd, salt, salt_crypt) VALUES (?, ?, ?, ?)"
                 # Tupla con los valores a insertar
@@ -274,8 +278,15 @@ class SQL:
                 # En caso de que ya exista, salta una excepcion
                 raise Exception("El usuario ya existe.")
 
+        def update_user(self, user: str, token: bytes, salt: bytes, salt_for_encryption: bytes):
+            query = "UPDATE accounts SET user_id=?,user_pwd=?,salt=?,salt_crypt=? WHERE user_id=?"
+            # Tupla con los valores a insertar
+            values = (user, token, salt, salt_for_encryption, user)
+            self.c.execute(query, values)
+            self.con.commit()
+
         # Busqueda de usuarios
-        def consultar_registro(self, user: str) -> bool:
+        def get_registration(self, user: str) -> bool:
             # Consulta de busqueda
             query = "SELECT * FROM accounts WHERE user_id = ?"
             # Ejecucion de consulta
@@ -290,7 +301,7 @@ class SQL:
             else:
                 return True
 
-        def consultar_dato_usuario(self, user: str, data_index) -> bytes:
+        def get_user_data(self, user: str, data_index) -> bytes:
             query = "SELECT * FROM accounts WHERE user_id = ?"
             self.c.execute(query, (user,))
 
@@ -307,7 +318,7 @@ class SQL:
         # ------------------------------------------------ GENERAL ----------------------------------------------
 
         # Permite cerrar la base de datos
-        def cerrar(self):
+        def close(self):
             # Guardamos los cambios hechos
             self.con.commit()
 
@@ -317,7 +328,7 @@ class SQL:
         # Funcion que permite resetear la base de datos.
         def reset(self):
             # cerramos la conexión
-            self.cerrar()
+            self.close()
             # ahora borramos los archivos
             shutil.rmtree(self.basepath)
             print("Datos borrados.")

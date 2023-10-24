@@ -54,7 +54,7 @@ class ConcertSheetWindow(Menu):
                 sheet_id = sheet.sheet.sheet_id
                 imp.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_import(sid))
                 view = QPushButton(sheet.sheet.title)
-                view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
+                view.clicked.connect(lambda c=False, sid=sheet.sheet: self.clicked_open(sid))
                 layout.addWidget(imp)
                 layout.addWidget(view)
                 row.setLayout(layout)
@@ -67,10 +67,9 @@ class ConcertSheetWindow(Menu):
         return False
 
     def clicked_import(self, sheet_id):
-        self.datos.insertar_concertsheets(self.user, self.date, sheet_id)
+        self.datos.insert_concertsheets(self.user, self.date, sheet_id)
         print("Partitura importada.")
         self.manager.open_concert_sheets_menu(self.user, self.date)
 
-    def clicked_open(self, sheet_id):
-        path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
-        self.open_file(path)
+    def clicked_open(self, sheet):
+        self.open_sheet(sheet)

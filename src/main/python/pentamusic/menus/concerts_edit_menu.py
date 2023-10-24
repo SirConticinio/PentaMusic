@@ -84,7 +84,7 @@ class ConcertEditWindow(Menu):
             sheet_id = sheet.sheet_id
             imp.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_desvincular(sid))
             view = QPushButton(sheet.title)
-            view.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_open(sid))
+            view.clicked.connect(lambda c=False, sid=sheet: self.clicked_open(sid))
             layout.addWidget(imp)
             layout.addWidget(view)
             row.setLayout(layout)
@@ -95,9 +95,8 @@ class ConcertEditWindow(Menu):
         self.update_concert()
         self.manager.open_concert_edit_menu(self.user, self.date)
 
-    def clicked_open(self, sheet_id):
-        path = os.path.expanduser("~/PentaMusic/Sheets/" + sheet_id + ".pdf")
-        self.open_file(path)
+    def clicked_open(self, sheet):
+        self.open_sheet(sheet)
 
     def clicked_confirmar(self):
         # aquí volvemos a guardar el concierto
@@ -122,4 +121,4 @@ class ConcertEditWindow(Menu):
 
     def clicked_import_sheets(self):
         self.update_concert()
-        self.manager.open_concert_sheets_menu(self.user, self.date_edit.dateTime().toPyDateTime())
+        self.manager.open_concert_sheets_menu(self.user, self.date)

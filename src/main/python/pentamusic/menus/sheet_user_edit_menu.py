@@ -60,7 +60,7 @@ class UserSheetEditWindow(Menu):
         self.manager.open_sheet_menu()
 
     def actualizar_partitura(self):
-        self.datos.actualizar_usersheet(self.sheet_id, self.session.user, self.comments.text(), self.learned_bar.text(), self.comments_nonce, self.learned_bar_nonce)
+        self.datos.update_usersheet(self.sheet_id, self.session.user, self.comments.text(), self.learned_bar.text(), self.comments_nonce, self.learned_bar_nonce)
 
     def clicked_delete(self):
         # aquí borramos la partitura si hace falta
