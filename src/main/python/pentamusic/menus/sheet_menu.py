@@ -55,7 +55,9 @@ class SheetWindow(Menu):
             sheet_id = user_sheet.sheet.sheet_id
             edit.clicked.connect(lambda c=False, sid=sheet_id: self.clicked_edit(sid))
             sheet_info = user_sheet.sheet.title
-            sheet_info += "\nCompás aprendido: " + str(user_sheet.learned_bar)
+            sheet_info += "\nCompositor: " + user_sheet.sheet.composer
+            sheet_info += "\nInstrumentos: " + user_sheet.sheet.instrument
+            sheet_info += "\n\nCompás aprendido: " + str(user_sheet.learned_bar)
             sheet_info += "\nComentarios: " + (user_sheet.comments if user_sheet.comments is not None else "-")
             view = QPushButton(sheet_info)
             view.setStyleSheet("text-align:left; padding:8px")

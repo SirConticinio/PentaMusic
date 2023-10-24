@@ -33,7 +33,8 @@ class SQL:
             self.c.execute("""CREATE TABLE IF NOT EXISTS accounts (
                                             user_id TEXT PRIMARY KEY,
                                             user_pwd BLOB NOT NULL,
-                                            salt BLOB NOT NULL
+                                            salt BLOB NOT NULL,
+                                            salt_crypt BLOB NOT NULL
                         )""")
 
             # Tabla que almacena los conciertos de cada usuario
@@ -259,14 +260,13 @@ class SQL:
         # ----------------------------------------- TABLA USUARIOS -----------------------------------------------------
 
         # Funcion que inserta en la tabla usuarios
-        def insertar_usuario(self, user: str, token: bytes, salt: bytes) -> None:
+        def insertar_usuario(self, user: str, token: bytes, salt: bytes, salt_for_encryption: bytes) -> None:
             # Primero buscamos si ya ha sido registrado
             if not self.consultar_registro(user):
                 # Insertamos
-                query = "INSERT INTO accounts (user_id, user_pwd, salt) VALUES (?, ?, ?)"
+                query = "INSERT INTO accounts (user_id, user_pwd, salt, salt_crypt) VALUES (?, ?, ?, ?)"
                 # Tupla con los valores a insertar
-                values = (user, token, salt)
-                # Ejecutamos
+                values = (user, token, salt, salt_for_encryption)
                 self.c.execute(query, values)
                 # Guardamos los cambios
                 self.con.commit()
