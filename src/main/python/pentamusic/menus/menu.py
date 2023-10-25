@@ -35,7 +35,6 @@ class Menu:
         self.w.setWindowTitle("PentaMusic")
         dir = os.path.dirname(os.path.realpath(__file__))
         icon = dir + os.path.sep + "icon.png"
-        print("hi: " + icon)
         self.w.setWindowIcon(QtGui.QIcon(icon))
 
         if self.w.centralWidget() is not None:
