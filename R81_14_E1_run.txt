@@ -1,0 +1,4 @@
+INSTRUCCIONES DE EJECUCIÓN:
+
+Para ejectuar PentaMusic, simplemente incluir las dependencias que se explican en el "requirements.txt" (Pycharm
+debería detectarlas automáticamente), y ejecutar el programa desde el archivo main.py
