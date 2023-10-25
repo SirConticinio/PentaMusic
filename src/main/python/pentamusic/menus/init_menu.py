@@ -27,16 +27,6 @@ class InitWindow(Menu):
         layout.addSpacerItem(spacer)
         layout.addWidget(killtable)
 
-        # Elementos usados durante el desarrollo de la aplicación que no pertenecen al producto final
-        """
-        debug1 = QPushButton("DEBUG: Fake login Mario.")
-        debug1.clicked.connect(lambda: self.clicked_debug_mario())
-        debug2 = QPushButton("DEBUG: Fake login Álvaro.")
-        debug2.clicked.connect(lambda: self.clicked_debug_alvaro())
-        layout.addWidget(debug1)
-        layout.addWidget(debug2)
-        """
-
         self.set_layout(layout)
 
     def clicked_login(self):
@@ -50,12 +40,3 @@ class InitWindow(Menu):
             "¿Estás seguro de que quieres borrar todos tus datos?\n\nEsta acción no se puede deshacer.",
             lambda: self.datos.reset(), lambda: ()
         )
-
-    # Elementos usados durante el desarrollo de la aplicación que no pertenecen al producto final
-    """def clicked_debug_mario(self):
-        self.crypto.login_debug("Mario", "12345")
-        self.manager.open_main_menu()
-
-    def clicked_debug_alvaro(self):
-        self.crypto.login_debug("Alvaro", "abcdefg")
-        self.manager.open_main_menu()"""

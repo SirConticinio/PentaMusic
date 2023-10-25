@@ -92,23 +92,6 @@ class Crypto:
             except Exception as e:
                 OkDialog("Ha ocurrido un error desencriptando los datos:\n" + str(e))
 
-        # Debug utilizado durante el desarrollo de la aplicación, que no pertenece al producto final:
-        """
-        def login_debug(self, debug_username, debug_password):
-            from pentamusic.basedatos.sql import SQL
-            if not SQL().get_registration(debug_username):
-                # tenemos que meter al usuario en la tabla
-                salt = os.urandom(16)
-                salt_for_encryption = os.urandom(16)
-                kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-                encoded = debug_password.encode('UTF-8')
-                token = kdf.derive(encoded)
-                SQL().insert_user(debug_username, token, salt, salt_for_encryption)
-
-            # ahora logueamos al usuario
-            self.set_session(debug_username, debug_password, SQL().get_user_data(debug_username, 3))"""
-
-
     # Usamos un singleton
     instance = None
 

@@ -4,7 +4,10 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from pathlib import Path
 
+from PyQt5 import QtGui
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QBoxLayout, QApplication
 
 from pentamusic.basedatos.session import Session
@@ -30,6 +33,11 @@ class Menu:
 
     def setup_window(self):
         self.w.setWindowTitle("PentaMusic")
+        dir = os.path.dirname(os.path.realpath(__file__))
+        icon = dir + os.path.sep + "icon.png"
+        print("hi: " + icon)
+        self.w.setWindowIcon(QtGui.QIcon(icon))
+
         if self.w.centralWidget() is not None:
             self.w.centralWidget().destroy()
 
@@ -60,6 +68,7 @@ class Menu:
             if should_decrypt:
                 contents = Crypto().decrypt_data(contents, decrypt_nonce, False)
             if should_encrypt:
+                # cada vez que encriptemos el archivo, generamos un nonce nuevo (no se puede reusar!)
                 file_nonce = os.urandom(12)
                 contents = Crypto().encrypt_data(contents, file_nonce)
             temp.write(contents)
