@@ -19,6 +19,7 @@ class Session():
 
     @staticmethod
     def revoke():
+        Session.instance.key = b""
         Session.instance = None
 
     def __getattr__(self, item):
