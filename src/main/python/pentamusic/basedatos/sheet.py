@@ -1,3 +1,4 @@
+# Clase para las partituras
 class Sheet:
     def __init__(self, sheet_id, title, owner, is_public, instrument, composer, file_nonce, bars):
         self.title = title

@@ -1,4 +1,5 @@
 
+# Sesion del usuario actual
 class Session():
 
     class __Session:
