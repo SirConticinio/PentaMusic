@@ -20,6 +20,11 @@ class MainWindow(Menu):
         conciertos = QPushButton("Conciertos")
         conciertos.clicked.connect(lambda: self.clicked_conciertos())
 
+        firmar = QPushButton("CRYPTO: Firmar usuario")
+        firmar.clicked.connect(lambda: self.clicked_firmar())
+        verificar = QPushButton("CRYPTO: Verificar usuario")
+        verificar.clicked.connect(lambda: self.clicked_verificar())
+
         layout = QVBoxLayout()
         self.add_back_button(layout, lambda: self.clicked_logout(), "⊘ Cerrar sesión ⊘")
         layout.addWidget(welcome)
@@ -27,6 +32,8 @@ class MainWindow(Menu):
         layout.addWidget(datos)
         layout.addWidget(partituras)
         layout.addWidget(conciertos)
+        layout.addWidget(firmar)
+        layout.addWidget(verificar)
 
         self.set_layout(layout)
 
@@ -39,3 +46,9 @@ class MainWindow(Menu):
 
     def clicked_conciertos(self):
         self.manager.open_concert_menu(False)
+
+    def clicked_firmar(self):
+        self.crypto.sign_user(self.session.user)
+
+    def clicked_verificar(self):
+        self.crypto.verify_user(self.session.user)

@@ -1,8 +1,16 @@
 import base64
 import os
+import shutil
+from datetime import datetime
+from pathlib import Path
 
 from PyQt5.QtWidgets import QDialog
-from cryptography.hazmat.primitives import cmac, hashes, hmac
+from cryptography import x509
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat._oid import NameOID
+from cryptography.hazmat.primitives import cmac, hashes, hmac, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -10,10 +18,13 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from pentamusic.basedatos.session import Session
 from pentamusic.menus.dialog import OkDialog
+from dotenv import load_dotenv
 
 
 class Crypto:
     class __Crypto:
+        basepath = os.path.expanduser("~/PentaMusic")
+
         def register_user(self, user_id: str, user_pwd: str):
             salt = os.urandom(16)
             salt_for_encryption = os.urandom(16)
@@ -25,6 +36,13 @@ class Crypto:
                 from pentamusic.basedatos.sql import SQL
                 SQL().insert_user(user_id, token, salt, salt_for_encryption)
                 self.set_session(user_id, user_pwd, salt_for_encryption)
+
+                # Por último, guardamos
+                try:
+                    self.sign_user(user_id)
+                    print("Se han firmado los datos de usuario.")
+                except Exception as e:
+                    OkDialog("Se ha producido un error durante el firmado de datos de usuario.\n" + str(e))
             except Exception as e:
                 OkDialog("Ha ocurrido un error durante el proceso de registro:\n" + str(e))
 
@@ -121,6 +139,8 @@ class Crypto:
                 with open(path, "wb") as key_file:
                     key_file.write(pem)
 
+                # Una vez generada y guardada la clave privada, vamos a certificarla
+                self.generate_certificate()
                 return private
 
         def sign_user(self, user: str):
@@ -159,7 +179,7 @@ class Crypto:
                 index = 0
                 for line in lines:
                     if line.strip() == header:
-                        data = lines[index + 1].strip()
+                        data = lines[index+1].strip()
                         return base64.b64decode(data) if is_base64 else data.encode('UTF-8')
                     index += 1
             return b""
@@ -188,6 +208,82 @@ class Crypto:
                     OkDialog("¡La firma no ha podido ser verificada!\n" + str(e))
             except Exception as e:
                 OkDialog(str(e))
+
+        def get_sign_public_key(self) -> RSAPublicKey:
+            # Lee la clave pública ya certificada y la devuelve
+            path = self.basepath + f"/OpenSSL/APP/CERT_PENTAMUSIC.pem"
+            with open(path, "rb") as key_file:
+                cert = x509.load_pem_x509_certificate(key_file.read())
+
+                # Leemos el certificado y verificamos que siga siendo correcto
+                path = self.basepath + "/OpenSSL/APP/"
+                origin = self.basepath + "/OpenSSL/AC1/ac1cert.pem"
+                verify = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
+                result = os.popen(f"cd {path} && openssl verify -CAfile {origin} {verify}").read()
+                if result.strip() == f"{verify}: OK":
+                    print("¡Se ha verificado que la clave pública es válida!")
+                    return cert.public_key()
+                else:
+                    raise Exception("¡La clave pública generada no es válida!")
+
+        def generate_openssl_system(self):
+            # Generamos todas las carpetas necesarias
+            path = self.basepath + "/OpenSSL/"
+            if os.path.exists(path):
+                # Ya hemos generado el sistema OpenSSL
+                return
+
+            os.mkdir(path)
+            os.mkdir(path + "APP")
+            os.mkdir(path + "AC1")
+            os.mkdir(path + "AC1/solicitudes")
+            os.mkdir(path + "AC1/crls")
+            os.mkdir(path + "AC1/nuevoscerts")
+            os.mkdir(path + "AC1/privado")
+
+            # Copiamos todos los archivos de configuración
+            ac1 = path + "AC1/"
+            configpath = Path(__file__).absolute().parent.as_posix() + "/certconfig/"
+            shutil.copy2(configpath + "index.txt", ac1)
+            shutil.copy2(configpath + "serial", ac1)
+            shutil.copy2(configpath + "openssl_AC1.cnf", ac1)
+
+            # Generamos el sistema de AC1
+            pwd = self.get_sign_password()
+            config = ac1 + "openssl_AC1.cnf"
+            out = ac1 + "ac1cert.pem"
+            os.system(f"cd {ac1} && openssl req -x509 -newkey rsa:2048 -days 360 -out {out} -outform PEM -config {config} -passout pass:\"{pwd}\"")
+
+        def create_certificate_request(self):
+            self.generate_openssl_system()
+
+            # Generate a CSR
+            csr = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "ES"),
+                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "MADRID"),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "UC3M"),
+                x509.NameAttribute(NameOID.COMMON_NAME, "PENTAMUSIC"),
+            ])).sign(self.get_sign_private_key(), hashes.SHA256())
+
+            # Write our CSR out to disk.
+            path = self.basepath + f"/OpenSSL/APP/CSR_PENTAMUSIC.pem"
+            with open(path, "wb") as f:
+                f.write(csr.public_bytes(serialization.Encoding.PEM))
+            shutil.copy2(path, self.basepath + "/OpenSSL/AC1/solicitudes")
+
+        def generate_certificate(self):
+            # Generamos la solicitud de certificado
+            self.create_certificate_request()
+
+            # Se la pasamos a AC1 para que la certifique
+            path = self.basepath + "/OpenSSL/AC1/"
+            request = path + "solicitudes/CSR_PENTAMUSIC.pem"
+            config = path + "openssl_AC1.cnf"
+            out = path + "nuevoscerts/01.pem"
+            final = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
+            pwd = self.get_sign_password()
+            os.system(f"cd {path} && openssl ca -batch -in {request} -notext -config {config} -passin pass:\"{pwd}\"")
+            os.system(f"cp {out} {final}")
 
     # Usamos un singleton
     instance = None
