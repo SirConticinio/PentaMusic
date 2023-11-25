@@ -92,6 +92,103 @@ class Crypto:
             except Exception as e:
                 OkDialog("Ha ocurrido un error desencriptando los datos:\n" + str(e))
 
+        def get_sign_password(self) -> bytes:
+            # Cargamos la contraseña del entorno
+            load_dotenv(self.basepath + "/private.env")
+            return os.getenv("PENTAMUSIC_PWD").encode('UTF-8')
+
+        def get_sign_private_key(self) -> RSAPrivateKey:
+            # Buscamos a ver si la clave ya existe, si no la generamos
+            path = self.basepath + "/private_key.pem"
+            if os.path.exists(path):
+                # Lo leemos del archivo
+                with open(path, "rb") as key_file:
+                    return serialization.load_pem_private_key(
+                        key_file.read(),
+                        password=self.get_sign_password(),
+                    )
+            else:
+                # La generamos y también la serializamos
+                private = rsa.generate_private_key(
+                    public_exponent=65537,
+                    key_size=2048
+                )
+                pem = private.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.BestAvailableEncryption(self.get_sign_password()),
+                )
+                with open(path, "wb") as key_file:
+                    key_file.write(pem)
+
+                return private
+
+        def sign_user(self, user: str):
+            # Vamos a firmar un recibo de registro de usuario
+            day = datetime.now().strftime("%d/%m/%Y")
+            hour = datetime.now().strftime("%H:%M:%S")
+            datos = f"El usuario: '{user}', se ha registrado a día '{day}' y hora '{hour}'."
+            signature = self.get_sign_private_key().sign(
+                datos.encode('UTF-8'),
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+
+            # Creamos el recibo
+            date = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+            emisor = "PentaMusic - UC3M"
+            base = base64.b64encode(signature).decode('ASCII')
+            recibo = f"===== RECIBO DIGITAL =====\nEmisor: {emisor}\nFecha: {date}\n\nMensaje:\n{datos}\n\nFirma:\n{base}\n==========================\n"
+
+            # Y lo guardamos en fichero
+            tickets = self.basepath + "/Tickets"
+            path = tickets + "/" + user + ".pem"
+            if not os.path.exists(tickets):
+                os.mkdir(tickets)
+            if os.path.exists(path):
+                os.remove(path)
+            with open(path, "w") as file:
+                file.write(recibo)
+
+        def get_ticket_data(self, filepath: str, header: str, is_base64: bool) -> bytes:
+            with open(filepath, "r") as file:
+                lines = file.readlines()
+                index = 0
+                for line in lines:
+                    if line.strip() == header:
+                        data = lines[index + 1].strip()
+                        return base64.b64decode(data) if is_base64 else data.encode('UTF-8')
+                    index += 1
+            return b""
+
+        def verify_user(self, user: str):
+            # Leemos el archivo que contiene el recibo del usuario
+            path = self.basepath + "/Tickets/" + user + ".pem"
+            message = self.get_ticket_data(path, "Mensaje:", False)
+            data = self.get_ticket_data(path, "Firma:", True)
+
+            # Y ahora probamos con la public key
+            try:
+                public_key = self.get_sign_public_key()
+                try:
+                    public_key.verify(
+                        data,
+                        message,
+                        padding.PSS(
+                            mgf=padding.MGF1(hashes.SHA256()),
+                            salt_length=padding.PSS.MAX_LENGTH
+                        ),
+                        hashes.SHA256()
+                    )
+                    OkDialog("¡Se ha verificado el usuario correctamente!")
+                except InvalidSignature as e:
+                    OkDialog("¡La firma no ha podido ser verificada!\n" + str(e))
+            except Exception as e:
+                OkDialog(str(e))
+
     # Usamos un singleton
     instance = None
 
