@@ -47,8 +47,5 @@ class MainWindow(Menu):
     def clicked_conciertos(self):
         self.manager.open_concert_menu(False)
 
-    def clicked_firmar(self):
-        self.crypto.sign_user(self.session.user)
-
     def clicked_verificar(self):
         self.crypto.verify_user(self.session.user)

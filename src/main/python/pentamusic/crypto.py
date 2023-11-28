@@ -23,9 +23,10 @@ from dotenv import load_dotenv
 
 class Crypto:
     class __Crypto:
+        loaded_env = False
         basepath = os.path.expanduser("~/PentaMusic")
 
-        def register_user(self, user_id: str, user_pwd: str):
+        def register_user(self, user_id: str, user_pwd: str) -> bool:
             salt = os.urandom(16)
             salt_for_encryption = os.urandom(16)
             kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
@@ -37,14 +38,19 @@ class Crypto:
                 SQL().insert_user(user_id, token, salt, salt_for_encryption)
                 self.set_session(user_id, user_pwd, salt_for_encryption)
 
-                # Por último, guardamos
+                # Por último, guardamos el usuario
                 try:
                     self.sign_user(user_id)
                     print("Se han firmado los datos de usuario.")
                 except Exception as e:
                     OkDialog("Se ha producido un error durante el firmado de datos de usuario.\n" + str(e))
+                    return False
             except Exception as e:
                 OkDialog("Ha ocurrido un error durante el proceso de registro:\n" + str(e))
+                return False
+
+            # Si llegamos hasta aquí, el registro ha terminado con éxito
+            return True
 
         def set_session(self, user_id: str, user_pwd: str, salt_for_encryption):
             kdf = PBKDF2HMAC(
@@ -110,23 +116,30 @@ class Crypto:
             except Exception as e:
                 OkDialog("Ha ocurrido un error desencriptando los datos:\n" + str(e))
 
-        def get_sign_password(self) -> bytes:
-            # Cargamos la contraseña del entorno
-            load_dotenv(self.basepath + "/private.env")
-            return os.getenv("PENTAMUSIC_PWD").encode('UTF-8')
+        def get_sign_password(self, key) -> bytes:
+            # Cargamos la contraseña del entorno si no lo hemos hecho antes
+            if not self.loaded_env:
+                load_dotenv(self.basepath + "/OpenSSL/private.env")
+                self.loaded_env = True
+
+            value = os.getenv(key)
+            if value is None or value.strip() == "":
+                raise Exception("¡No se han configurado las contraseñas del entorno!"
+                                "\nNo se pueden realizar operaciones con certificados.")
+            return value.encode('UTF-8')
 
         def get_sign_private_key(self) -> RSAPrivateKey:
             # Buscamos a ver si la clave ya existe, si no la generamos
-            path = self.basepath + "/private_key.pem"
+            path = self.basepath + "/OpenSSL/APP/private_key.pem"
             if os.path.exists(path):
                 # Lo leemos del archivo
                 with open(path, "rb") as key_file:
                     return serialization.load_pem_private_key(
                         key_file.read(),
-                        password=self.get_sign_password(),
+                        password=self.get_sign_password("PENTAMUSIC_PWD"),
                     )
             else:
-                # La generamos y también la serializamos
+                # Generamos la contraseña y la serializamos
                 private = rsa.generate_private_key(
                     public_exponent=65537,
                     key_size=2048
@@ -134,7 +147,7 @@ class Crypto:
                 pem = private.private_bytes(
                     encoding=serialization.Encoding.PEM,
                     format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.BestAvailableEncryption(self.get_sign_password()),
+                    encryption_algorithm=serialization.BestAvailableEncryption(self.get_sign_password("PENTAMUSIC_PWD")),
                 )
                 with open(path, "wb") as key_file:
                     key_file.write(pem)
@@ -203,7 +216,7 @@ class Crypto:
                         ),
                         hashes.SHA256()
                     )
-                    OkDialog("¡Se ha verificado el usuario correctamente!")
+                    OkDialog("¡Se ha verificado el usuario correctamente!\n" + message.decode('UTF-8'))
                 except InvalidSignature as e:
                     OkDialog("¡La firma no ha podido ser verificada!\n" + str(e))
             except Exception as e:
@@ -229,35 +242,34 @@ class Crypto:
         def generate_openssl_system(self):
             # Generamos todas las carpetas necesarias
             path = self.basepath + "/OpenSSL/"
-            if os.path.exists(path):
-                # Ya hemos generado el sistema OpenSSL
-                return
-
-            os.mkdir(path)
-            os.mkdir(path + "APP")
-            os.mkdir(path + "AC1")
-            os.mkdir(path + "AC1/solicitudes")
-            os.mkdir(path + "AC1/crls")
-            os.mkdir(path + "AC1/nuevoscerts")
-            os.mkdir(path + "AC1/privado")
-
-            # Copiamos todos los archivos de configuración
             ac1 = path + "AC1/"
-            configpath = Path(__file__).absolute().parent.as_posix() + "/certconfig/"
-            shutil.copy2(configpath + "index.txt", ac1)
-            shutil.copy2(configpath + "serial", ac1)
-            shutil.copy2(configpath + "openssl_AC1.cnf", ac1)
+            if not os.path.exists(path):
+                # Generamos los sistemas de carpetas
+                os.mkdir(path)
+                os.mkdir(path + "APP")
+                os.mkdir(path + "AC1")
+                os.mkdir(path + "AC1/solicitudes")
+                os.mkdir(path + "AC1/crls")
+                os.mkdir(path + "AC1/nuevoscerts")
+                os.mkdir(path + "AC1/privado")
 
-            # Generamos el sistema de AC1
-            pwd = self.get_sign_password()
-            config = ac1 + "openssl_AC1.cnf"
-            out = ac1 + "ac1cert.pem"
-            os.system(f"cd {ac1} && openssl req -x509 -newkey rsa:2048 -days 360 -out {out} -outform PEM -config {config} -passout pass:\"{pwd}\"")
+                # Copiamos todos los archivos de configuración
+                configpath = Path(__file__).absolute().parent.as_posix() + "/certconfig/"
+                shutil.copy2(configpath + "index.txt", ac1)
+                shutil.copy2(configpath + "serial", ac1)
+                shutil.copy2(configpath + "openssl_AC1.cnf", ac1)
+                shutil.copy2(configpath + "private.env", path)
+
+            cert = ac1 + "ac1cert.pem"
+            if not os.path.exists(cert):
+                # Generamos el sistema de AC1
+                pwd = self.get_sign_password("AC1_PWD")
+                config = ac1 + "openssl_AC1.cnf"
+                print("¡Generando el certificado de AC1!")
+                os.system(f"cd {ac1} && openssl req -x509 -newkey rsa:2048 -days 360 -out {cert} -outform PEM -config {config} -passout pass:\"{pwd}\"")
 
         def create_certificate_request(self):
-            self.generate_openssl_system()
-
-            # Generate a CSR
+            # Generamos la solicitud de certificado desde el código con nuestros datos
             csr = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
                 x509.NameAttribute(NameOID.COUNTRY_NAME, "ES"),
                 x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "MADRID"),
@@ -265,24 +277,27 @@ class Crypto:
                 x509.NameAttribute(NameOID.COMMON_NAME, "PENTAMUSIC"),
             ])).sign(self.get_sign_private_key(), hashes.SHA256())
 
-            # Write our CSR out to disk.
+            # La guardamos en nuestra carpeta para pasársela a AC1
             path = self.basepath + f"/OpenSSL/APP/CSR_PENTAMUSIC.pem"
             with open(path, "wb") as f:
                 f.write(csr.public_bytes(serialization.Encoding.PEM))
+            # La copiamos a AC1
             shutil.copy2(path, self.basepath + "/OpenSSL/AC1/solicitudes")
 
         def generate_certificate(self):
             # Generamos la solicitud de certificado
             self.create_certificate_request()
 
-            # Se la pasamos a AC1 para que la certifique
+            # La procesamos desde AC1 para que la certifique
             path = self.basepath + "/OpenSSL/AC1/"
             request = path + "solicitudes/CSR_PENTAMUSIC.pem"
             config = path + "openssl_AC1.cnf"
             out = path + "nuevoscerts/01.pem"
-            final = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
-            pwd = self.get_sign_password()
+            pwd = self.get_sign_password("AC1_PWD")
             os.system(f"cd {path} && openssl ca -batch -in {request} -notext -config {config} -passin pass:\"{pwd}\"")
+
+            # Finalmente se la devolvemos a la carpeta de APP
+            final = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
             os.system(f"cp {out} {final}")
 
     # Usamos un singleton

@@ -63,5 +63,5 @@ class LoginWindow(Menu):
                     self.manager.open_main_menu()
             else:
                 # metemos el usuario en la base de datos si no existe
-                self.crypto.register_user(user, password)
-                self.manager.open_main_menu()
+                if self.crypto.register_user(user, password):
+                    self.manager.open_main_menu()
