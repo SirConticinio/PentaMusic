@@ -2,6 +2,7 @@
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QLineEdit, QLabel, QWidget, QSpacerItem, QSizePolicy
 from pentamusic.basedatos.sql import SQL
+from .dialog import OkDialog
 from .menu import Menu
 from .sheet_menu import SheetWindow
 from pentamusic.basedatos.session import Session
@@ -20,7 +21,7 @@ class MainWindow(Menu):
         conciertos = QPushButton("Conciertos")
         conciertos.clicked.connect(lambda: self.clicked_conciertos())
 
-        firmar = QPushButton("CRYPTO: Firmar usuario")
+        firmar = QPushButton("CRYPTO: Volver a firmar usuario")
         firmar.clicked.connect(lambda: self.clicked_firmar())
         verificar = QPushButton("CRYPTO: Verificar usuario")
         verificar.clicked.connect(lambda: self.clicked_verificar())
@@ -46,6 +47,13 @@ class MainWindow(Menu):
 
     def clicked_conciertos(self):
         self.manager.open_concert_menu(False)
+
+    def clicked_firmar(self):
+        try:
+            self.crypto.sign_user(self.session.user)
+            print("Se han firmado los datos de usuario.")
+        except Exception as e:
+            OkDialog("Se ha producido un error durante el firmado de datos de usuario.\n" + str(e))
 
     def clicked_verificar(self):
         self.crypto.verify_user(self.session.user)

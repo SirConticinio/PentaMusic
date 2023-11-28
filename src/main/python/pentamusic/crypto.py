@@ -232,8 +232,9 @@ class Crypto:
                 path = self.basepath + "/OpenSSL/APP/"
                 origin = self.basepath + "/OpenSSL/AC1/ac1cert.pem"
                 verify = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
-                result = os.popen(f"cd {path} && openssl verify -CAfile {origin} {verify}").read()
-                if result.strip() == f"{verify}: OK":
+                result_key = os.popen(f"cd {path} && openssl verify -CAfile {origin} {verify}").read()
+                result_ac1 = os.popen(f"cd {path} && openssl verify -CAfile {origin} {origin}").read()
+                if result_key.strip() == f"{verify}: OK" and result_ac1.strip() == f"{origin}: OK":
                     print("¡Se ha verificado que la clave pública es válida!")
                     return cert.public_key()
                 else:
