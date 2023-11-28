@@ -41,7 +41,8 @@ class Crypto:
                 # Por último, guardamos el usuario
                 try:
                     self.sign_user(user_id)
-                    print("Se han firmado los datos de usuario.")
+                    OkDialog("¡Bienvenido a PentaMusic!\nSe ha generado un recibo en la carpeta del programa"
+                             "\ncon tus datos de registro.")
                 except Exception as e:
                     OkDialog("Se ha producido un error durante el firmado de datos de usuario.\n" + str(e))
                     return False
