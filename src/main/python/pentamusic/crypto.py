@@ -186,6 +186,7 @@ class Crypto:
                 os.remove(path)
             with open(path, "w") as file:
                 file.write(recibo)
+            print(f"\n\nSe ha firmado el usuario con el siguiente recibo:\n{recibo}")
 
         def get_ticket_data(self, filepath: str, header: str, is_base64: bool) -> bytes:
             with open(filepath, "r") as file:
@@ -226,6 +227,9 @@ class Crypto:
         def get_sign_public_key(self) -> RSAPublicKey:
             # Lee la clave pública ya certificada y la devuelve
             path = self.basepath + f"/OpenSSL/APP/CERT_PENTAMUSIC.pem"
+            if not os.path.exists(path):
+                raise Exception("¡No se ha generado el certificado de clave pública de la aplicación!")
+
             with open(path, "rb") as key_file:
                 cert = x509.load_pem_x509_certificate(key_file.read())
 
@@ -269,6 +273,8 @@ class Crypto:
                 config = ac1 + "openssl_AC1.cnf"
                 print("¡Generando el certificado de AC1!")
                 os.system(f"cd {ac1} && openssl req -x509 -newkey rsa:2048 -days 360 -out {cert} -outform PEM -config {config} -passout pass:\"{pwd}\"")
+                print("\nLos datos del certificado son los siguientes:")
+                os.system(f"cd {ac1} && openssl x509 -in {cert} -text -noout")
 
         def create_certificate_request(self):
             # Generamos la solicitud de certificado desde el código con nuestros datos
@@ -296,7 +302,11 @@ class Crypto:
             config = path + "openssl_AC1.cnf"
             out = path + "nuevoscerts/01.pem"
             pwd = self.get_sign_password("AC1_PWD")
+            print("¡Generamos el certificado del sistema!")
             os.system(f"cd {path} && openssl ca -batch -in {request} -notext -config {config} -passin pass:\"{pwd}\"")
+            print("\nLos datos del certificado son los siguientes:")
+            os.system(f"cd {path} && openssl x509 -in {out} -text -noout")
+
 
             # Finalmente se la devolvemos a la carpeta de APP
             final = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
