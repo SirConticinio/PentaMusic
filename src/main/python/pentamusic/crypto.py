@@ -179,7 +179,7 @@ class Crypto:
 
             # Y lo guardamos en fichero
             tickets = self.basepath + "/Tickets"
-            path = tickets + "/" + user + ".pem"
+            path = tickets + "/" + user + ".txt"
             if not os.path.exists(tickets):
                 os.mkdir(tickets)
             if os.path.exists(path):
@@ -201,7 +201,7 @@ class Crypto:
 
         def verify_user(self, user: str):
             # Leemos el archivo que contiene el recibo del usuario
-            path = self.basepath + "/Tickets/" + user + ".pem"
+            path = self.basepath + "/Tickets/" + user + ".txt"
             message = self.get_ticket_data(path, "Mensaje:", False)
             data = self.get_ticket_data(path, "Firma:", True)
 
