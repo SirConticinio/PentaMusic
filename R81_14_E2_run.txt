@@ -1,0 +1,9 @@
+INSTRUCCIONES DE EJECUCIÓN:
+
+Para ejectuar PentaMusic, simplemente incluir las dependencias que se explican en el "requirements.txt" (Pycharm
+debería detectarlas automáticamente), y ejecutar el programa desde el archivo main.py.
+
+CAMBIOS EN LA ENTREGA 2:
+Al abrir el programa, se le indicará que no se han configurado las contraseñas de entorno para los certificados.
+Para ello, puedes ir a ~/PentaMusic/OpenSSL, y allí se habrá generado el archivo "private.env".
+Dicho archivo tiene 2 claves sin valor asignado para que se configuren con las contraseñas que sean convenientes.
