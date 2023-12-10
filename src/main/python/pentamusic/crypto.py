@@ -226,25 +226,55 @@ class Crypto:
 
         def get_sign_public_key(self) -> RSAPublicKey:
             # Lee la clave pública ya certificada y la devuelve
-            path = self.basepath + f"/OpenSSL/APP/CERT_PENTAMUSIC.pem"
-            if not os.path.exists(path):
+            path_app = self.basepath + f"/OpenSSL/APP/CERT_PENTAMUSIC.pem"
+            path_ac1 = self.basepath + "/OpenSSL/AC1/ac1cert.pem"
+            if not os.path.exists(path_app):
                 raise Exception("¡No se ha generado el certificado de clave pública de la aplicación!")
 
-            with open(path, "rb") as key_file:
-                cert = x509.load_pem_x509_certificate(key_file.read())
+            # Leemos el certificado y verificamos que siga siendo correcto
+            # Este es el código anterior que realizaba los cálculos con el comando verify
 
-                # Leemos el certificado y verificamos que siga siendo correcto
-                path = self.basepath + "/OpenSSL/APP/"
-                origin = self.basepath + "/OpenSSL/AC1/ac1cert.pem"
-                verify = self.basepath + "/OpenSSL/APP/CERT_PENTAMUSIC.pem"
-                result_key = os.popen(f"cd {path} && openssl verify -CAfile {origin} {verify}").read()
-                result_ac1 = os.popen(f"cd {path} && openssl verify -CAfile {origin} {origin}").read()
-                if result_key.strip() == f"{verify}: OK" and result_ac1.strip() == f"{origin}: OK":
-                    print("¡Se ha verificado que la clave pública es válida!")
-                    return cert.public_key()
-                else:
-                    raise Exception("¡La clave pública generada no es válida!")
+            # with open(path_app, "rb") as file_app:
+            #     with open(path_ac1, "rb") as file_ac1:
+            #         cert = x509.load_pem_x509_certificate(file_app.read())
+            #         cert_ac1 = x509.load_pem_x509_certificate(file_ac1.read())
+            #
+            #         path = self.basepath + "/OpenSSL/APP/"
+            #         result_key = os.popen(f"cd {path} && openssl verify -CAfile {path_ac1} {path_app}").read()
+            #         result_ac1 = os.popen(f"cd {path} && openssl verify -CAfile {path_ac1} {path_ac1}").read()
+            #         if result_key.strip() == f"{path_app}: OK" and result_ac1.strip() == f"{path_ac1}: OK":
+            #             print("¡Se ha verificado que la clave pública es válida!")
+            #             return cert.public_key()
+            #         else:
+            #             raise Exception("¡La clave pública generada no es válida!")
 
+            # Este es el nuevo código que realiza los cálculos en Python
+            # Vamos a verificar tanto APP sobre AC1, como AC1 sobre AC1 (confirma que el archivo sigue siendo correcto)
+            if self.verify_certificate(path_ac1, path_app) and self.verify_certificate(path_ac1, path_ac1):
+                print("¡Se ha verificado que la clave pública es válida!")
+                with open(path_app, "rb") as file_app:
+                    return x509.load_pem_x509_certificate(file_app.read()).public_key()
+            else:
+                raise Exception("¡La clave pública generada no es válida!")
+
+        def verify_certificate(self, cert_original, cert_verify) -> bool:
+            with open(cert_verify, "rb") as file_app:
+                with open(cert_original, "rb") as file_ac1:
+                    try:
+                        cert = x509.load_pem_x509_certificate(file_app.read())
+                        cert_ac1 = x509.load_pem_x509_certificate(file_ac1.read())
+
+                        public_key = cert_ac1.public_key()
+                        public_key.verify(
+                            cert.signature,
+                            cert.tbs_certificate_bytes,
+                            cert.signature_algorithm_parameters,
+                            cert.signature_hash_algorithm
+                        )
+                        return True
+                    except Exception as e:
+                        return False
+            
         def generate_openssl_system(self):
             # Generamos todas las carpetas necesarias
             path = self.basepath + "/OpenSSL/"
